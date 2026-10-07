@@ -9,14 +9,14 @@ interface Props {
   fridges: FridgeMetric[]
 }
 
-const dorms = ["무악학사", "송도학사", "법현학사", "제중학사", "SK국제학사"]
-const buildings: Record<string, string[]> = {
+export const dorms = ["무악학사", "송도학사", "법현학사", "제중학사", "SK국제학사"]
+export const buildings: Record<string, string[]> = {
   무악학사: ["1관", "2관", "3관", "4관", "6관(우정관)"],
   송도학사: ["A동", "B동", "C동", "D동", "E동", "F동", "G동"],
   법현학사: ["본관"], 제중학사: ["본관"], SK국제학사: ["SK글로벌하우스", "인터내셔널하우스"],
 }
 
-function floorNumber(label: string) {
+export function floorNumber(label: string) {
   const value = Number(label.replace(/\D/g, "")) || 1
   return label.trim().toUpperCase().startsWith("B") ? -value : value
 }

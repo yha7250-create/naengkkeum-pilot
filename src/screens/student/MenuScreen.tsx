@@ -10,6 +10,7 @@ interface Props {
 
 export default function MenuScreen({ onBack, onNext, profile, residence }: Props) {
   const items = [
+    { icon: "👤", label: "내 정보 수정", sub: "기숙사·동·층·호실과 연락처 변경", screen: "profileEdit" },
     { icon: "▣", label: "내 음식", sub: "내 음식과 공동 등록 음식 모아보기", screen: "myFoods" },
     { icon: "🍱", label: "음식 등록", sub: "사진과 보관 위치를 등록해요", screen: "addFood" },
     { icon: "🛒", label: "공동구매·정산", sub: "계좌 공지와 입금 체크리스트", screen: "groupBuy" },

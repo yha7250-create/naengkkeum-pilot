@@ -15,6 +15,7 @@ import ReportScreen from "./screens/student/ReportScreen"
 import CommunityScreen from "./screens/student/CommunityScreen"
 import MyFoodsScreen from "./screens/student/MyFoodsScreen"
 import NotificationSettingsScreen from "./screens/student/NotificationSettingsScreen"
+import ProfileEditScreen from "./screens/student/ProfileEditScreen"
 import AdminSplashScreen from "./screens/admin/AdminSplashScreen"
 import AdminCodeScreen from "./screens/admin/AdminCodeScreen"
 import AdminCodeIssueScreen from "./screens/admin/AdminCodeIssueScreen"
@@ -30,13 +31,14 @@ import AdminFridgeSelectScreen from "./screens/admin/AdminFridgeSelectScreen"
 import { useDormMealStore, type DormMealStore } from "./useDormMealStore"
 import PilotGate from "./pilot/PilotGate"
 
-type StudentScreen = "splash" | "schoolSelect" | "dormSelect" | "profileRegister" | "fridge" | "impact" | "report" | "community" | "menu" | "groupBuy" | "addFood" | "myFoods" | "notificationSettings"
+type StudentScreen = "splash" | "schoolSelect" | "dormSelect" | "profileRegister" | "profileEdit" | "fridge" | "impact" | "report" | "community" | "menu" | "groupBuy" | "addFood" | "myFoods" | "notificationSettings"
 type AdminScreen = "adminSplash" | "adminCode" | "adminCodeIssue" | "adminSchoolSelect" | "adminDormSelect" | "adminFridgeSelect" | "adminFridgeConfig" | "adminFridge" | "adminOperations" | "adminFoodDetail" | "adminMenu" | "adminDashboard" | "adminStats" | "adminStoragePolicy"
 
 const studentLabels: Record<StudentScreen, string> = {
   splash: "시작", schoolSelect: "학교", dormSelect: "기숙사", profileRegister: "내 정보",
   fridge: "내 냉장고", impact: "절감 리포트", report: "문제 신고", community: "커뮤니티", menu: "메뉴", groupBuy: "공동구매", addFood: "음식 등록",
   myFoods: "내 음식", notificationSettings: "알림 설정",
+  profileEdit: "내 정보 수정",
 }
 
 const adminLabels: Record<AdminScreen, string> = {
@@ -66,6 +68,7 @@ function StudentApp({ store }: { store: DormMealStore }) {
       case "addFood": return <AddFoodScreen onBack={back} onDone={store.addFood} usedUnits={store.usedUnits} usedUnitsByZone={store.usedUnitsByZone} storagePolicy={store.storagePolicy} foods={store.foods} layout={store.fridgeLayout} residence={store.studentResidence} profile={store.profile} quickFoods={store.quickFoods} />
       case "myFoods": return <MyFoodsScreen onBack={back} onNext={go} foods={store.foods} profile={store.profile} onComplete={store.completeFood} onUpdateQuantity={store.updateFoodQuantity} />
       case "notificationSettings": return <NotificationSettingsScreen onBack={back} initial={store.notificationSettings} onSave={store.saveNotificationSettings} />
+      case "profileEdit": return <ProfileEditScreen onBack={back} profile={store.profile} residence={store.studentResidence} fridges={store.fridges} activeFoodCount={store.ownedFoods.length} onSaveProfile={store.updateProfile} onSaveResidence={store.updateResidence} />
     }
   })()
 

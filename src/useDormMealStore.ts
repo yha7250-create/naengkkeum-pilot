@@ -485,6 +485,7 @@ export function useDormMealStore() {
     adminFridges,
     archivedAdminFridges,
     adminManagedAreas,
+    ownedFoods,
     usedUnits,
     usedUnitsByZone,
     personalLimit,
