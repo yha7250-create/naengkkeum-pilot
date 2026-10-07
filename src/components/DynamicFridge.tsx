@@ -1,4 +1,4 @@
-import type { FoodItem, FridgeLayout } from "../model"
+import { foodTargetDate, type FoodItem, type FridgeLayout } from "../model"
 
 export type FridgeZone = "냉장실" | "냉동고"
 type SlotState = "safe" | "warn" | "urgent" | "expired" | "empty"
@@ -21,7 +21,7 @@ export function getFridgeSlots(layout: FridgeLayout): FridgeSlot[] {
 }
 
 function getFoodState(food: FoodItem): Exclude<SlotState, "empty"> {
-  const target = new Date(food.expiry ? `${food.expiry}T23:59:59` : food.reminderAt)
+  const target = foodTargetDate(food)
   const diff = Math.ceil((target.getTime() - Date.now()) / 86400000)
   if (diff < 0) return "expired"
   if (diff <= 2) return "urgent"

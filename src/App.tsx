@@ -55,16 +55,16 @@ function StudentApp({ store }: { store: DormMealStore }) {
     switch (screen) {
       case "splash": return <SplashScreen onNext={go} />
       case "schoolSelect": return <SchoolSelectScreen onNext={go} onBack={back} residence={store.residence} onSave={store.updateResidence} />
-      case "dormSelect": return <DormSelectScreen onNext={go} onBack={back} initial={store.residence} onSave={store.updateResidence} />
+      case "dormSelect": return <DormSelectScreen onNext={go} onBack={back} initial={store.residence} onSave={store.updateResidence} fridges={store.fridges} />
       case "profileRegister": return <ProfileRegisterScreen onNext={go} onBack={back} initial={store.profile} onSave={store.updateProfile} />
-      case "fridge": return <FridgeScreen onNext={go} foods={store.foods} layout={store.fridgeLayout} residence={store.residence} profile={store.profile} impact={store.impact} personalLimit={store.personalLimit} onComplete={store.completeFood} announcements={store.announcements} fridgeId={store.studentFridgeId} communityGoal={store.studentCommunityGoal} />
+      case "fridge": return <FridgeScreen onNext={go} foods={store.foods} layout={store.fridgeLayout} residence={store.studentResidence} profile={store.profile} impact={store.impact} personalLimit={store.personalLimit} onComplete={store.completeFood} announcements={store.announcements} fridgeId={store.studentFridgeId} communityGoal={store.studentCommunityGoal} />
       case "impact": return <ImpactScreen onBack={back} foods={store.foods} impact={store.impact} />
-      case "report": return <ReportScreen onBack={back} reports={store.reports} onSubmit={store.addReport} residence={store.residence} profile={store.profile} />
-      case "community": return <CommunityScreen onBack={back} rooms={store.rooms} onAddRoom={store.addRoom} onSend={store.sendMessage} residence={store.residence} />
-      case "menu": return <MenuScreen onBack={back} onNext={go} profile={store.profile} residence={store.residence} />
-      case "groupBuy": return <GroupBuyScreen onBack={back} rooms={store.rooms} profile={store.profile} residence={store.residence} onAddRoom={store.addRoom} onJoin={store.joinGroupBuy} onTogglePayment={store.toggleGroupBuyPayment} />
-      case "addFood": return <AddFoodScreen onBack={back} onDone={store.addFood} usedUnits={store.usedUnits} usedUnitsByZone={store.usedUnitsByZone} storagePolicy={store.storagePolicy} foods={store.foods} layout={store.fridgeLayout} residence={store.residence} profile={store.profile} />
-      case "myFoods": return <MyFoodsScreen onBack={back} onNext={go} foods={store.foods} profile={store.profile} onComplete={store.completeFood} />
+      case "report": return <ReportScreen onBack={back} reports={store.reports} onSubmit={store.addReport} residence={store.studentResidence} profile={store.profile} />
+      case "community": return <CommunityScreen onBack={back} rooms={store.rooms} onAddRoom={store.addRoom} onSend={store.sendMessage} residence={store.studentResidence} />
+      case "menu": return <MenuScreen onBack={back} onNext={go} profile={store.profile} residence={store.studentResidence} />
+      case "groupBuy": return <GroupBuyScreen onBack={back} rooms={store.rooms} profile={store.profile} residence={store.studentResidence} onAddRoom={store.addRoom} onJoin={store.joinGroupBuy} onTogglePayment={store.toggleGroupBuyPayment} />
+      case "addFood": return <AddFoodScreen onBack={back} onDone={store.addFood} usedUnits={store.usedUnits} usedUnitsByZone={store.usedUnitsByZone} storagePolicy={store.storagePolicy} foods={store.foods} layout={store.fridgeLayout} residence={store.studentResidence} profile={store.profile} quickFoods={store.quickFoods} />
+      case "myFoods": return <MyFoodsScreen onBack={back} onNext={go} foods={store.foods} profile={store.profile} onComplete={store.completeFood} onUpdateQuantity={store.updateFoodQuantity} />
       case "notificationSettings": return <NotificationSettingsScreen onBack={back} initial={store.notificationSettings} onSave={store.saveNotificationSettings} />
     }
   })()
@@ -86,7 +86,13 @@ function AdminApp({ store }: { store: DormMealStore }) {
   }
   const back = () => setHistory(items => { if (!items.length) return items; setScreen(items[items.length - 1]); return items.slice(0, -1) })
   const login = (code: string, name: string) => { const ok = store.verifyAdminCode(code, name); if (ok) setAuthenticated(true); return ok }
-  const logout = () => { store.logoutAdmin(); setAuthenticated(false); setHistory([]); setScreen("adminSplash") }
+  const logout = () => {
+    if (!window.confirm("RA 관리 화면에서 로그아웃할까요? 같은 RA 이름과 기존 코드로 다시 로그인할 수 있습니다.")) return
+    store.logoutAdmin()
+    setAuthenticated(false)
+    setHistory([])
+    setScreen("adminSplash")
+  }
 
   const content = (() => {
     switch (screen) {

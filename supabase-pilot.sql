@@ -47,3 +47,14 @@ on public.pilot_state for update to authenticated using (true) with check (true)
 
 grant select, insert, update on public.pilot_members to authenticated;
 grant select, insert, update on public.pilot_state to authenticated;
+
+-- RA가 저장한 냉장고 이름·구조를 다른 학생 기기에 즉시 전달합니다.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'pilot_state'
+  ) then
+    alter publication supabase_realtime add table public.pilot_state;
+  end if;
+end $$;

@@ -1,4 +1,25 @@
 export type StorageSize = "small" | "medium" | "large"
+export type FoodQuantityUnit = "개" | "팩" | "봉" | "병" | "캔" | "단" | "장" | "모" | "g" | "kg" | "mL" | "L"
+
+export const foodQuantityUnits: FoodQuantityUnit[] = ["개", "팩", "봉", "병", "캔", "단", "장", "모", "g", "kg", "mL", "L"]
+
+export function quantityStepFor(unit: FoodQuantityUnit) {
+  if (unit === "g" || unit === "mL") return 100
+  if (unit === "kg" || unit === "L") return 0.1
+  return 1
+}
+
+export function normalizeFoodQuantity(quantity: number, unit: FoodQuantityUnit) {
+  const step = quantityStepFor(unit)
+  const minimum = step < 1 ? step : 1
+  const maximum = step >= 100 ? 100000 : 999
+  const rounded = Math.round(quantity / step) * step
+  return Math.max(minimum, Math.min(maximum, Number(rounded.toFixed(step < 1 ? 1 : 0))))
+}
+
+export function formatFoodQuantity(quantity = 1, unit: FoodQuantityUnit = "개") {
+  return `${Number(quantity.toFixed(1))}${unit}`
+}
 
 export interface FoodItem {
   id: string
@@ -13,6 +34,11 @@ export interface FoodItem {
   photoData?: string
   shelfId?: string
   expiry?: string
+  openedAt?: string
+  openedUseBy?: string
+  quantity?: number
+  quantityUnit?: FoodQuantityUnit
+  memo?: string
   expiryProofName?: string
   expiryVerified: boolean
   registeredAt: string
@@ -25,12 +51,37 @@ export interface FoodItem {
   icon?: string
 }
 
+export interface FoodQuickPick {
+  key: string
+  catalogId?: string
+  name: string
+  kind: string
+  category: string
+  zone: "냉장실" | "냉동고"
+  icon?: string
+  quantityUnit: FoodQuantityUnit
+  count: number
+  lastUsedAt: string
+}
+
+/** 소비기한, 개봉 후 상태 확인 권장일, 기본 알림일 중 가장 빠른 날짜입니다. */
+export function foodTargetDate(food: FoodItem) {
+  const dates = [
+    food.expiry ? new Date(`${food.expiry}T23:59:59`) : null,
+    food.openedUseBy ? new Date(`${food.openedUseBy}T23:59:59`) : null,
+    food.reminderAt ? new Date(food.reminderAt) : null,
+  ].filter((date): date is Date => Boolean(date && !Number.isNaN(date.getTime())))
+
+  return dates.length ? new Date(Math.min(...dates.map(date => date.getTime()))) : new Date()
+}
+
 export interface ResidenceProfile {
   school: "연세대학교"
   dorm: string
   building: string
   floor: number
   fridgeName: string
+  fridgeId?: string
 }
 
 export interface AdminManagedArea {

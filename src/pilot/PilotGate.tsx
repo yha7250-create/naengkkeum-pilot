@@ -162,6 +162,22 @@ function ConnectedPilotGate({ store, children }: Props) {
     return () => { window.clearInterval(interval); window.removeEventListener("focus", focus) }
   }, [ready, session?.user.id])
 
+  useEffect(() => {
+    if (!supabase || !ready || !session?.user.id) return
+    const channel = supabase.channel("naengkkeum-pilot-state")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "pilot_state", filter: "id=eq.yonsei-pilot" }, payload => {
+        const next = (payload.new as { data?: Partial<typeof store.sharedSnapshot> }).data
+        if (!next) return
+        const remote = JSON.stringify(next)
+        if (remote === lastShared.current) return
+        storeRef.current.importSharedSnapshot(next)
+        lastShared.current = remote
+        setSyncState("saved")
+      })
+      .subscribe()
+    return () => { void supabase!.removeChannel(channel) }
+  }, [ready, session?.user.id])
+
   async function joinPilot() {
     const cleanName = name.trim()
     const cleanRoom = room.trim().replace(/호$/, "")

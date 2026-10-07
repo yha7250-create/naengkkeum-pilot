@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import DynamicFridge, { getFridgeSlots, type FridgeZone } from "../../components/DynamicFridge"
 import FoodIcon from "../../components/FoodIcon"
-import type { CommunityGoal, FoodItem, FridgeAnnouncement, FridgeLayout, ImpactStats, ResidenceProfile, UserProfile } from "../../model"
+import { foodTargetDate, type CommunityGoal, type FoodItem, type FridgeAnnouncement, type FridgeLayout, type ImpactStats, type ResidenceProfile, type UserProfile } from "../../model"
 
 interface Props {
   onNext: (screen: string) => void
@@ -20,7 +20,7 @@ interface Props {
 type FoodState = { level: "expired" | "urgent" | "warn" | "safe"; label: string; order: number }
 
 function foodState(food: FoodItem): FoodState {
-  const target = new Date(food.expiry ? `${food.expiry}T23:59:59` : food.reminderAt)
+  const target = foodTargetDate(food)
   const diff = Math.ceil((target.getTime() - Date.now()) / 86400000)
   if (diff < 0) return { level: "expired", label: `${Math.abs(diff)}일 지남`, order: diff }
   if (diff === 0) return { level: "urgent", label: "오늘 확인", order: 0 }
@@ -94,7 +94,7 @@ export default function FridgeScreen({ onNext, foods, layout, residence, profile
               const active = pending?.id === food.id
               return (
                 <article className={`stored-food-card food-${state.level}`} key={food.id}>
-                  {food.photoData ? <img src={food.photoData} alt="" /> : <div className="food-placeholder"><FoodIcon category={food.category} emoji={food.icon} size="large" /></div>}
+                  {food.photoData ? <img src={food.photoData} alt="" /> : <div className="food-placeholder"><FoodIcon category={food.category} foodId={food.guideId?.replace(/^catalog-/, "")} emoji={food.icon} size="large" /></div>}
                   <div className="grow"><div className="dm-row gap"><strong>{food.name}</strong><span className="slot-chip">{food.shelfId ?? "미지정"}</span></div><small>{food.kind} · {food.units}칸</small><p>{food.reminderRule}</p><span className={`food-status ${state.level}`}>{state.label}</span></div>
                   {!active && <div className="food-actions"><button onClick={() => setPending({ id: food.id, outcome: "consumed" })}>먹었어요</button><button className="muted" onClick={() => setPending({ id: food.id, outcome: "discarded" })}>폐기</button></div>}
                   {active && <div className="food-confirm"><strong>{pending.outcome === "consumed" ? "소비 완료할까요?" : "폐기로 기록할까요?"}</strong><div><button onClick={() => setPending(null)}>취소</button><button onClick={confirmAction}>확인</button></div></div>}

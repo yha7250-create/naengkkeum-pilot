@@ -1,5 +1,5 @@
 import EagleMascot from "../../components/EagleMascot"
-import type { ChatRoom, CommunityGoal, FoodItem, FridgeMetric, IncidentReport, ResidenceProfile, StoragePolicy } from "../../model"
+import { foodTargetDate, type ChatRoom, type CommunityGoal, type FoodItem, type FridgeMetric, type IncidentReport, type ResidenceProfile, type StoragePolicy } from "../../model"
 
 interface Props {
   onNext: (screen: string) => void
@@ -16,7 +16,7 @@ interface Props {
 }
 
 function daysUntil(food: FoodItem) {
-  const target = new Date(food.expiry ? `${food.expiry}T23:59:59` : food.reminderAt)
+  const target = foodTargetDate(food)
   return Math.ceil((target.getTime() - Date.now()) / 86400000)
 }
 

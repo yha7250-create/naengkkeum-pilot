@@ -14,11 +14,13 @@ import {
   initialActivities,
   initialAnnouncements,
   initialCommunityGoals,
+  normalizeFoodQuantity,
   uid,
   type ChatRoom,
   type AdminManagedArea,
   type AdminAccessCode,
   type FoodItem,
+  type FoodQuickPick,
   type FridgeLayout,
   type FridgeMetric,
   type ImpactStats,
@@ -78,6 +80,7 @@ export function useDormMealStore() {
   const [notificationSettings, setNotificationSettings] = useStoredState<NotificationSettings>("dormmeal.notifications.v1", initialNotificationSettings)
   const [storagePolicy, setStoragePolicy] = useStoredState<StoragePolicy>("dormmeal.storagePolicy.v1", initialStoragePolicy)
   const [activities, setActivities] = useStoredState<FoodActivity[]>("dormmeal.activities.v1", initialActivities)
+  const [quickFoods, setQuickFoods] = useStoredState<FoodQuickPick[]>("naengkkeum.quickFoods.v1", [])
   const [selectedAdminFridgeId, setSelectedAdminFridgeId] = useStoredState<string>("dormmeal.selectedAdminFridge.v1", "1-3-b")
   const [announcements, setAnnouncements] = useStoredState<FridgeAnnouncement[]>("dormmeal.announcements.v1", initialAnnouncements)
   const [communityGoals, setCommunityGoals] = useStoredState<Record<string, CommunityGoal>>("dormmeal.communityGoals.v1", initialCommunityGoals)
@@ -112,17 +115,24 @@ export function useDormMealStore() {
     floor: floorNumber(activeAdminFridge.floor),
     fridgeName: activeAdminFridge.label,
   } : residence
-  const studentFridge = fridges.find(fridge => !fridge.archivedAt &&
-    fridge.building === residence.building
-    && floorNumber(fridge.floor) === residence.floor
-    && (residence.fridgeName.includes(fridge.label) || fridge.label.includes(residence.fridgeName)),
-  ) ?? fridges[0]
+  const studentLocationFridges = fridges.filter(fridge => !fridge.archivedAt
+    && (fridge.dorm ?? initialResidence.dorm) === residence.dorm
+    && fridge.building === residence.building
+    && floorNumber(fridge.floor) === residence.floor)
+  const studentFridge = studentLocationFridges.find(fridge => fridge.id === residence.fridgeId)
+    ?? studentLocationFridges.find(fridge => residence.fridgeName.includes(fridge.label) || fridge.label.includes(residence.fridgeName))
+    ?? studentLocationFridges[0]
+  const studentResidence: ResidenceProfile = studentFridge ? {
+    ...residence,
+    fridgeId: studentFridge.id,
+    fridgeName: studentFridge.label,
+  } : residence
   const makeLocationKey = (target: ResidenceProfile) => `${target.school}|${target.dorm}|${target.building}|${target.floor}|${target.fridgeName.replace(/^공용\s*/, "")}`
   const legacyResidenceLocationKey = `${residence.school}|${residence.dorm}|${residence.building}|${residence.floor}|${residence.fridgeName}`
   const fridgeLocationKey = makeLocationKey(residence)
   const adminFridgeLocationKey = makeLocationKey(adminResidence)
-  const fridgeLayout = fridgeLayouts[fridgeLocationKey] ?? fridgeLayouts[legacyResidenceLocationKey] ?? (Object.keys(fridgeLayouts).length === 0 ? legacyFridgeLayout : initialFridgeLayout)
-  const adminFridgeLayout = fridgeLayouts[adminFridgeLocationKey] ?? (adminFridgeLocationKey === fridgeLocationKey ? fridgeLayout : initialFridgeLayout)
+  const fridgeLayout = (studentFridge ? fridgeLayouts[studentFridge.id] : undefined) ?? fridgeLayouts[fridgeLocationKey] ?? fridgeLayouts[legacyResidenceLocationKey] ?? (Object.keys(fridgeLayouts).length === 0 ? legacyFridgeLayout : initialFridgeLayout)
+  const adminFridgeLayout = (activeAdminFridge ? fridgeLayouts[activeAdminFridge.id] : undefined) ?? fridgeLayouts[adminFridgeLocationKey] ?? (adminFridgeLocationKey === fridgeLocationKey ? fridgeLayout : initialFridgeLayout)
   const studentCommunityGoal = communityGoals[studentFridge?.id ?? ""] ?? { fridgeId: studentFridge?.id ?? "", target: 10, completed: 0, weekLabel: "이번 주" }
   const adminCommunityGoal = communityGoals[activeAdminFridge?.id ?? ""] ?? { fridgeId: activeAdminFridge?.id ?? "", target: 10, completed: 0, weekLabel: "이번 주" }
 
@@ -137,10 +147,36 @@ export function useDormMealStore() {
   function addFood(food: FoodItem) {
     setFoods(current => [food, ...current])
     setActivities(current => [{ id: uid("activity"), type: "registered", units: food.units, at: new Date().toISOString() }, ...current])
+    const catalogId = food.guideId?.startsWith("catalog-") ? food.guideId.replace(/^catalog-/, "") : undefined
+    const quickKey = catalogId ?? `custom-${food.name.trim().toLowerCase()}`
+    setQuickFoods(current => {
+      const previous = current.find(item => item.key === quickKey)
+      const next: FoodQuickPick = {
+        key: quickKey,
+        catalogId,
+        name: food.name,
+        kind: food.kind,
+        category: food.category,
+        zone: food.zone,
+        icon: food.icon,
+        quantityUnit: food.quantityUnit ?? "개",
+        count: (previous?.count ?? 0) + 1,
+        lastUsedAt: new Date().toISOString(),
+      }
+      return [next, ...current.filter(item => item.key !== quickKey)]
+        .sort((a, b) => b.count - a.count || b.lastUsedAt.localeCompare(a.lastUsedAt))
+        .slice(0, 8)
+    })
     setImpact(current => ({ ...current, points: current.points + 5 }))
     setFridges(current => current.map(fridge => fridge.id === studentFridge?.id
       ? { ...fridge, used: Math.min(fridge.capacity, fridge.used + food.units) }
       : fridge))
+  }
+
+  function updateFoodQuantity(id: string, quantity: number) {
+    setFoods(current => current.map(food => food.id === id
+      ? { ...food, quantity: normalizeFoodQuantity(quantity, food.quantityUnit ?? "개") }
+      : food))
   }
 
   function removeFood(id: string) {
@@ -229,7 +265,7 @@ export function useDormMealStore() {
   }
 
   function saveAdminFridgeLayout(layout: FridgeLayout) {
-    setFridgeLayouts(current => ({ ...current, [adminFridgeLocationKey]: layout }))
+    setFridgeLayouts(current => ({ ...current, [adminFridgeLocationKey]: layout, ...(activeAdminFridge ? { [activeAdminFridge.id]: layout } : {}) }))
     if (adminFridgeLocationKey === fridgeLocationKey) setLegacyFridgeLayout(layout)
   }
 
@@ -337,12 +373,17 @@ export function useDormMealStore() {
 
   function verifyAdminCode(code: string, adminName: string) {
     const clean = code.trim().toUpperCase()
-    const matched = adminCodes.find(item => item.code.toUpperCase() === clean && item.active && !item.usedAt)
+    const cleanName = adminName.trim() || "관리자"
+    const matched = adminCodes.find(item => item.code.toUpperCase() === clean
+      && item.active
+      && (!item.usedAt || item.usedBy?.trim().toLowerCase() === cleanName.toLowerCase()))
     if (!matched) return false
-    setAdminCodes(current => current.map(item => item.id === matched.id ? {
-      ...item, usedAt: new Date().toISOString(), usedBy: adminName.trim() || "관리자",
-    } : item))
-    setAdminSession(adminName.trim() || matched.label)
+    if (!matched.usedAt) {
+      setAdminCodes(current => current.map(item => item.id === matched.id ? {
+        ...item, usedAt: new Date().toISOString(), usedBy: cleanName,
+      } : item))
+    }
+    setAdminSession(cleanName || matched.label)
     return true
   }
 
@@ -412,7 +453,7 @@ export function useDormMealStore() {
     announcements, communityGoals, adminManagedAreas, adminCodes,
   }), [foods, reports, rooms, fridges, fridgeLayouts, storagePolicy, activities, announcements, communityGoals, adminManagedAreas, adminCodes])
 
-  const memberSnapshot = useMemo(() => ({ residence, profile, impact, notificationSettings }), [residence, profile, impact, notificationSettings])
+  const memberSnapshot = useMemo(() => ({ residence, profile, impact, notificationSettings, quickFoods }), [residence, profile, impact, notificationSettings, quickFoods])
 
   function importSharedSnapshot(data: Partial<typeof sharedSnapshot>) {
     if (Array.isArray(data.foods)) setFoods(data.foods)
@@ -433,6 +474,7 @@ export function useDormMealStore() {
     if (data.profile) setProfile(data.profile)
     if (data.impact) setImpact(data.impact)
     if (data.notificationSettings) setNotificationSettings(data.notificationSettings)
+    if (Array.isArray(data.quickFoods)) setQuickFoods(data.quickFoods)
   }
 
   return {
@@ -447,6 +489,7 @@ export function useDormMealStore() {
     usedUnitsByZone,
     personalLimit,
     residence,
+    studentResidence,
     profile,
     fridgeLayout,
     adminFridgeLayout,
@@ -463,7 +506,9 @@ export function useDormMealStore() {
     notificationSettings,
     storagePolicy,
     activities,
+    quickFoods,
     addFood,
+    updateFoodQuantity,
     removeFood,
     completeFood,
     updateResidence,

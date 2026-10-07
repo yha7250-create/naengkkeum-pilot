@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import type { FoodItem, FridgeLayout, ResidenceProfile, UserProfile } from "../../model"
+import { foodTargetDate, type FoodItem, type FridgeLayout, type ResidenceProfile, type UserProfile } from "../../model"
 
 interface Props {
   onNext: (screen: string) => void
@@ -72,7 +72,7 @@ export default function AdminFridgeOverviewScreen({ onNext, foods, layout, resid
       slot: food.shelfId || (food.zone === "냉동고" ? "F1" : `R${index % Math.max(1, layout.fridgeShelves) + 1}`),
       size: food.size === "large" ? "대형" : food.size === "medium" ? "중형" : "소형",
       registeredAt: food.registeredAt,
-      expiry: food.expiry ? `${food.expiry}T23:59:59` : food.reminderAt,
+      expiry: foodTargetDate(food).toISOString(),
       longStay: Date.now() - new Date(food.registeredAt).getTime() >= 14 * 86400000,
     })))
 
