@@ -136,7 +136,9 @@ export function useDormMealStore() {
   const studentCommunityGoal = communityGoals[studentFridge?.id ?? ""] ?? { fridgeId: studentFridge?.id ?? "", target: 10, completed: 0, weekLabel: "이번 주" }
   const adminCommunityGoal = communityGoals[activeAdminFridge?.id ?? ""] ?? { fridgeId: activeAdminFridge?.id ?? "", target: 10, completed: 0, weekLabel: "이번 주" }
 
-  const ownedFoods = useMemo(() => foods.filter(food => !food.coOwners?.length || food.coOwners.includes(profile.room)), [foods, profile.room])
+  const studentFoods = useMemo(() => foods.filter(food => food.fridgeId === studentFridge?.id), [foods, studentFridge?.id])
+  const adminFoods = useMemo(() => foods.filter(food => food.fridgeId === activeAdminFridge?.id), [foods, activeAdminFridge?.id])
+  const ownedFoods = useMemo(() => studentFoods.filter(food => !food.coOwners?.length || food.coOwners.includes(profile.room)), [studentFoods, profile.room])
   const usedUnits = useMemo(() => ownedFoods.reduce((sum, item) => sum + item.units, 0), [ownedFoods])
   const usedUnitsByZone = useMemo(() => ({
     "냉장실": ownedFoods.filter(food => food.zone === "냉장실").reduce((sum, item) => sum + item.units, 0),
@@ -145,21 +147,22 @@ export function useDormMealStore() {
   const personalLimit = storagePolicy.totalUnits
 
   function addFood(food: FoodItem) {
-    setFoods(current => [food, ...current])
-    setActivities(current => [{ id: uid("activity"), type: "registered", units: food.units, at: new Date().toISOString() }, ...current])
-    const catalogId = food.guideId?.startsWith("catalog-") ? food.guideId.replace(/^catalog-/, "") : undefined
+    const storedFood = { ...food, fridgeId: studentFridge?.id }
+    setFoods(current => [storedFood, ...current])
+    setActivities(current => [{ id: uid("activity"), type: "registered", units: storedFood.units, at: new Date().toISOString() }, ...current])
+    const catalogId = storedFood.guideId?.startsWith("catalog-") ? storedFood.guideId.replace(/^catalog-/, "") : undefined
     const quickKey = catalogId ?? `custom-${food.name.trim().toLowerCase()}`
     setQuickFoods(current => {
       const previous = current.find(item => item.key === quickKey)
       const next: FoodQuickPick = {
         key: quickKey,
         catalogId,
-        name: food.name,
-        kind: food.kind,
-        category: food.category,
-        zone: food.zone,
-        icon: food.icon,
-        quantityUnit: food.quantityUnit ?? "개",
+        name: storedFood.name,
+        kind: storedFood.kind,
+        category: storedFood.category,
+        zone: storedFood.zone,
+        icon: storedFood.icon,
+        quantityUnit: storedFood.quantityUnit ?? "개",
         count: (previous?.count ?? 0) + 1,
         lastUsedAt: new Date().toISOString(),
       }
@@ -169,7 +172,7 @@ export function useDormMealStore() {
     })
     setImpact(current => ({ ...current, points: current.points + 5 }))
     setFridges(current => current.map(fridge => fridge.id === studentFridge?.id
-      ? { ...fridge, used: Math.min(fridge.capacity, fridge.used + food.units) }
+      ? { ...fridge, used: Math.min(fridge.capacity, fridge.used + storedFood.units) }
       : fridge))
   }
 
@@ -183,7 +186,7 @@ export function useDormMealStore() {
     const target = foods.find(food => food.id === id)
     setFoods(current => current.filter(food => food.id !== id))
     if (target) {
-      setFridges(current => current.map(fridge => fridge.id === studentFridge?.id
+      setFridges(current => current.map(fridge => fridge.id === (target.fridgeId ?? studentFridge?.id)
         ? { ...fridge, used: Math.max(0, fridge.used - target.units) }
         : fridge))
     }
@@ -206,10 +209,11 @@ export function useDormMealStore() {
     } else {
       setImpact(current => ({ ...current, completedActions: current.completedActions + 1, points: current.points + 2 }))
     }
-    if (studentFridge) {
+    const goalFridgeId = target.fridgeId ?? studentFridge?.id
+    if (goalFridgeId) {
       setCommunityGoals(current => {
-        const goal = current[studentFridge.id] ?? { fridgeId: studentFridge.id, target: 10, completed: 0, weekLabel: "이번 주" }
-        return { ...current, [studentFridge.id]: { ...goal, completed: Math.min(goal.target, goal.completed + 1) } }
+        const goal = current[goalFridgeId] ?? { fridgeId: goalFridgeId, target: 10, completed: 0, weekLabel: "이번 주" }
+        return { ...current, [goalFridgeId]: { ...goal, completed: Math.min(goal.target, goal.completed + 1) } }
       })
     }
   }
@@ -479,6 +483,8 @@ export function useDormMealStore() {
 
   return {
     foods,
+    studentFoods,
+    adminFoods,
     reports,
     rooms,
     fridges,

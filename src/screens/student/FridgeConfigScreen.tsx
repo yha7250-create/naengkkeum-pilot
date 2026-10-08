@@ -14,10 +14,10 @@ interface Props {
 }
 
 const controls: { key: keyof FridgeLayout; zone: FridgeZone; icon: string; label: string; help: string; min: number; max: number }[] = [
-  { key: "fridgeShelves", zone: "냉장실", icon: "🥬", label: "냉장 선반", help: "큰 공용 냉장고 선반", min: 3, max: 10 },
+  { key: "fridgeShelves", zone: "냉장실", icon: "🥬", label: "냉장 선반", help: "큰 공용 냉장고 선반", min: 1, max: 10 },
   { key: "drawers", zone: "냉장실", icon: "🥕", label: "신선 서랍", help: "채소·과일 보관칸", min: 0, max: 4 },
   { key: "doorPockets", zone: "냉장실", icon: "🥛", label: "냉장 문칸", help: "문 안쪽 수납칸", min: 0, max: 8 },
-  { key: "freezerShelves", zone: "냉동고", icon: "🧊", label: "냉동 선반", help: "냉동고 내부 선반", min: 2, max: 8 },
+  { key: "freezerShelves", zone: "냉동고", icon: "🧊", label: "냉동 선반", help: "냉동고 내부 선반", min: 1, max: 8 },
   { key: "freezerDoorPockets", zone: "냉동고", icon: "🍨", label: "냉동 문칸", help: "냉동고 문 안쪽 수납칸", min: 0, max: 6 },
 ]
 

@@ -23,6 +23,8 @@ export function formatFoodQuantity(quantity = 1, unit: FoodQuantityUnit = "개")
 
 export interface FoodItem {
   id: string
+  /** 음식이 실제로 등록된 냉장고. 여러 냉장고 간 음식이 섞이지 않게 합니다. */
+  fridgeId?: string
   name: string
   kind: string
   category: string
@@ -222,49 +224,8 @@ export interface FridgeMetric {
   archivedAt?: string
 }
 
-export const initialFoods: FoodItem[] = [
-  {
-    id: "food-1",
-    name: "그릭요거트",
-    kind: "미개봉 냉장식품",
-    category: "유제품",
-    zone: "냉장실",
-    position: "중단 선반",
-    shelfId: "R2",
-    size: "small",
-    units: 1,
-    expiry: "2026-09-21",
-    expiryProofName: "yogurt-label.jpg",
-    expiryVerified: true,
-    registeredAt: "2026-09-17T09:00:00.000Z",
-    reminderAt: "2026-09-20T09:00:00.000Z",
-    reminderRule: "소비기한 1일 전",
-    registrationMode: "personal",
-    coOwners: ["302호"],
-    price: 4800,
-    guideId: "sealed-dairy",
-  },
-  {
-    id: "food-2",
-    name: "닭가슴살 3팩",
-    kind: "냉동식품",
-    category: "육류",
-    zone: "냉동고",
-    position: "상단 선반",
-    shelfId: "F1",
-    size: "medium",
-    units: 2,
-    photoName: "chicken.jpg",
-    expiryVerified: false,
-    registeredAt: "2026-09-15T12:00:00.000Z",
-    reminderAt: "2026-09-29T12:00:00.000Z",
-    reminderRule: "사진 등록 · 14일 후 확인",
-    registrationMode: "shared",
-    coOwners: ["302호", "304호"],
-    price: 12900,
-    guideId: "frozen-meat",
-  },
-]
+/** 파일럿에서는 실제 참가자가 등록한 음식만 보여 줍니다. */
+export const initialFoods: FoodItem[] = []
 
 export const initialReports: IncidentReport[] = [
   {

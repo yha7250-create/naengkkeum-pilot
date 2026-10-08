@@ -36,13 +36,6 @@ const statusText: Record<StorageStatus, string> = {
   expired: "기한 초과",
 }
 
-function dateFromToday(days: number) {
-  const date = new Date()
-  date.setHours(12, 0, 0, 0)
-  date.setDate(date.getDate() + days)
-  return date.toISOString()
-}
-
 function getStatus(item: InventoryItem): StorageStatus {
   const diff = Math.ceil((new Date(item.expiry).getTime() - Date.now()) / 86400000)
   if (diff < 0) return "expired"
@@ -76,25 +69,7 @@ export default function AdminFridgeOverviewScreen({ onNext, foods, layout, resid
       longStay: Date.now() - new Date(food.registeredAt).getTime() >= 14 * 86400000,
     })))
 
-    const samples: InventoryItem[] = [
-      { id: "a1", room: "301호", name: "계란 10구", zone: "냉장실", slot: "R1", size: "중형", registeredAt: dateFromToday(-4), expiry: dateFromToday(9), longStay: false },
-      { id: "a2", room: "301호", name: "우유", zone: "냉장실", slot: "P1", size: "소형", registeredAt: dateFromToday(-2), expiry: dateFromToday(5), longStay: false },
-      { id: "a3", room: "303호", name: "남은 치킨", zone: "냉장실", slot: "R3", size: "중형", registeredAt: dateFromToday(-2), expiry: dateFromToday(1), longStay: false },
-      { id: "a4", room: "305호", name: "샐러드", zone: "냉장실", slot: "P2", size: "소형", registeredAt: dateFromToday(-1), expiry: dateFromToday(4), longStay: false },
-      { id: "a5", room: "306호", name: "두부", zone: "냉장실", slot: "R2", size: "소형", registeredAt: dateFromToday(-9), expiry: dateFromToday(-1), longStay: false },
-      { id: "a6", room: "307호", name: "김치통", zone: "냉장실", slot: "R3", size: "대형", registeredAt: dateFromToday(-20), expiry: dateFromToday(18), longStay: true },
-      { id: "a7", room: "308호", name: "요거트", zone: "냉장실", slot: "D1", size: "소형", registeredAt: dateFromToday(-3), expiry: dateFromToday(6), longStay: false },
-      { id: "a8", room: "310호", name: "배달 떡볶이", zone: "냉장실", slot: "R4", size: "중형", registeredAt: dateFromToday(-3), expiry: dateFromToday(0), longStay: false },
-      { id: "f1", room: "301호", name: "냉동 만두", zone: "냉동실", slot: "F1", size: "중형", registeredAt: dateFromToday(-8), expiry: dateFromToday(22), longStay: false },
-      { id: "f2", room: "302호", name: "아이스크림", zone: "냉동실", slot: "FP2", size: "소형", registeredAt: dateFromToday(-5), expiry: dateFromToday(40), longStay: false },
-      { id: "f3", room: "304호", name: "냉동 볶음밥", zone: "냉동실", slot: "F1", size: "중형", registeredAt: dateFromToday(-17), expiry: dateFromToday(30), longStay: true },
-      { id: "f4", room: "306호", name: "닭가슴살", zone: "냉동실", slot: "F2", size: "중형", registeredAt: dateFromToday(-6), expiry: dateFromToday(16), longStay: false },
-      { id: "f5", room: "311호", name: "냉동 도시락", zone: "냉동실", slot: "F3", size: "중형", registeredAt: dateFromToday(-7), expiry: dateFromToday(2), longStay: false },
-      { id: "f6", room: "312호", name: "냉동 블루베리", zone: "냉동실", slot: "F3", size: "소형", registeredAt: dateFromToday(-10), expiry: dateFromToday(25), longStay: false },
-      { id: "f7", room: "315호", name: "냉동 피자", zone: "냉동실", slot: "F4", size: "대형", registeredAt: dateFromToday(-18), expiry: dateFromToday(7), longStay: true },
-      { id: "f8", room: "310호", name: "얼린 국", zone: "냉동실", slot: "FP1", size: "중형", registeredAt: dateFromToday(-3), expiry: dateFromToday(1), longStay: false },
-    ]
-    return [...currentUser, ...samples.filter(sample => sample.room !== (profile.room || "302호"))]
+    return currentUser
   }, [foods, layout.fridgeShelves, profile.room])
 
   const mainSlots: StorageSlot[] = zone === "냉장실"

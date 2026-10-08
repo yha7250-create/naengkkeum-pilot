@@ -1,141 +1,83 @@
-import { useState } from 'react'
+import { useMemo, useState } from "react"
+import FoodIcon from "../../components/FoodIcon"
+import { foodTargetDate, formatFoodQuantity, type FoodItem, type ResidenceProfile } from "../../model"
 
-interface Props { onBack: () => void }
+interface Props {
+  onBack: () => void
+  foods: FoodItem[]
+  residence: ResidenceProfile
+  onRemove: (id: string) => void
+}
 
-type BoxStatus = 'safe' | 'warn' | 'urgent' | 'expired' | 'empty'
-const statusColor: Record<BoxStatus, string> = { safe: '#22C55E', warn: '#F59E0B', urgent: '#EF4444', expired: '#991B1B', empty: '#D4E4DA' }
-const statusBg: Record<BoxStatus, string> = { safe: '#DCFCE7', warn: '#FEF3C7', urgent: '#FEE2E2', expired: '#FEE2E2', empty: '#F4F7F5' }
-const statusLabel: Record<BoxStatus, string> = { safe: '안전', warn: '주의', urgent: '임박', expired: '기한초과', empty: '비어있음' }
+type Filter = "all" | "urgent" | "expired"
 
-const allRooms = [
-  { room: '301', status: 'safe' as BoxStatus, student: '김민준', phone: '010-1234-5678', items: [{ name: '우유', cat: '유제품', stored: '2026-08-04', expiry: '2026-08-15' }, { name: '요거트', cat: '유제품', stored: '2026-08-06', expiry: '2026-08-12' }] },
-  { room: '302', status: 'warn' as BoxStatus, student: '홍길동', phone: '010-9876-5432', items: [{ name: '닭가슴살', cat: '육류', stored: '2026-08-01', expiry: '2026-08-10' }, { name: '계란', cat: '유제품', stored: '2026-08-05', expiry: '2026-08-20' }] },
-  { room: '303', status: 'urgent' as BoxStatus, student: '이수빈', phone: '010-5555-7777', items: [{ name: '배달음식', cat: '남은음식', stored: '2026-08-06', expiry: '2026-08-08' }] },
-  { room: '304', status: 'empty' as BoxStatus, student: '박지훈', phone: '010-3333-2222', items: [] },
-  { room: '305', status: 'safe' as BoxStatus, student: '최유나', phone: '010-1111-4444', items: [{ name: '사과', cat: '과일', stored: '2026-08-05', expiry: '2026-08-18' }] },
-  { room: '306', status: 'expired' as BoxStatus, student: '정민재', phone: '010-6666-9999', items: [{ name: '두부', cat: '냉장식품', stored: '2026-07-30', expiry: '2026-08-05' }, { name: '두유', cat: '유제품', stored: '2026-07-28', expiry: '2026-08-03' }] },
-]
+function daysLeft(food: FoodItem) {
+  return Math.ceil((foodTargetDate(food).getTime() - Date.now()) / 86400000)
+}
 
-export default function AdminFoodDetailScreen({ onBack }: Props) {
-  const [selRoom, setSelRoom] = useState<typeof allRooms[0] | null>(null)
-  const [filter, setFilter] = useState<'all' | 'urgent' | 'expired'>('all')
+function statusOf(food: FoodItem) {
+  const days = daysLeft(food)
+  if (days < 0) return { key: "expired", label: `${Math.abs(days)}일 초과` }
+  if (days <= 2) return { key: "urgent", label: days === 0 ? "오늘 확인" : `D-${days}` }
+  if (days <= 7) return { key: "warn", label: `D-${days}` }
+  return { key: "safe", label: `D-${days}` }
+}
 
-  const filtered = allRooms.filter(r => {
-    if (filter === 'urgent') return r.status === 'urgent'
-    if (filter === 'expired') return r.status === 'expired'
-    return true
-  })
+export default function AdminFoodDetailScreen({ onBack, foods, residence, onRemove }: Props) {
+  const [filter, setFilter] = useState<Filter>("all")
+  const [expandedRoom, setExpandedRoom] = useState("")
 
-  return (
-    <div style={{ height: '100%', background: '#F4F7F5', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
-    <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 56 }}>
-      {/* Header */}
-      <div style={{ background: '#0F3D2B', padding: '16px 24px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-          <button onClick={onBack} style={{ width: 32, height: 32, border: 'none', background: 'rgba(255,255,255,0.15)', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 13L5 8L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" /></svg>
-          </button>
-          <div>
-            <div style={{ display: 'flex', gap: 5, marginBottom: 2 }}>
-              <span style={{ background: '#F5C518', borderRadius: 5, padding: '1px 6px', fontFamily: "'Outfit', sans-serif", fontSize: 9, fontWeight: 700, color: '#1A2420' }}>RA</span>
-            </div>
-            <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 20, fontWeight: 800, color: 'white', margin: 0 }}>음식 정보 관리</h2>
-            <p style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.6)', margin: 0 }}>신촌학사 A동 3층 · 구역별 클릭으로 상세 확인</p>
-          </div>
-        </div>
-        {/* Filter */}
-        <div style={{ display: 'flex', gap: 6 }}>
-          {[{ key: 'all', label: '전체' }, { key: 'urgent', label: '⚠ 임박' }, { key: 'expired', label: '🔴 기한초과' }].map(f => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key as typeof filter)}
-              style={{ padding: '6px 12px', background: filter === f.key ? '#F5C518' : 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 8, fontFamily: "'Noto Sans KR', sans-serif", fontSize: 12, fontWeight: filter === f.key ? 700 : 400, color: filter === f.key ? '#1A2420' : 'white', cursor: 'pointer' }}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+  const visibleFoods = useMemo(() => foods
+    .filter(food => filter === "all" || statusOf(food).key === filter)
+    .sort((a, b) => daysLeft(a) - daysLeft(b)), [foods, filter])
+
+  const byRoom = useMemo(() => {
+    const grouped = new Map<string, FoodItem[]>()
+    visibleFoods.forEach(food => {
+      const owners = food.coOwners?.length ? food.coOwners : ["소유자 미입력"]
+      owners.forEach(room => grouped.set(room, [...(grouped.get(room) ?? []), food]))
+    })
+    return [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b, "ko"))
+  }, [visibleFoods])
+
+  function remove(food: FoodItem) {
+    if (window.confirm(`‘${food.name}’ 등록을 냉장고에서 삭제할까요? 이 작업은 되돌릴 수 없습니다.`)) onRemove(food.id)
+  }
+
+  return <div className="dm-screen admin-food-detail-screen">
+    <header className="dm-header admin-header">
+      <button className="dm-icon-button dark" onClick={onBack} aria-label="뒤로 가기">‹</button>
+      <div><p>{residence.dorm} {residence.building} {residence.floor}층 · {residence.fridgeName}</p><h2>실제 등록 음식</h2></div>
+      <span className="dm-step admin">RA</span>
+    </header>
+    <main className="dm-stack">
+      <section className="my-food-summary">
+        <div><strong>{foods.length}</strong><span>전체</span></div>
+        <div><strong>{foods.filter(food => daysLeft(food) >= 0 && daysLeft(food) <= 2).length}</strong><span>임박</span></div>
+        <div><strong>{foods.filter(food => daysLeft(food) < 0).length}</strong><span>기한 초과</span></div>
+      </section>
+      <div className="dm-segmented three">
+        {([["all", "전체"], ["urgent", "임박"], ["expired", "기한 초과"]] as const).map(([key, label]) =>
+          <button key={key} className={filter === key ? "active" : ""} onClick={() => setFilter(key)}>{label}</button>)}
       </div>
-
-      {/* Room list */}
-      <div style={{ padding: '12px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filtered.map(r => (
-          <button
-            key={r.room}
-            onClick={() => setSelRoom(selRoom?.room === r.room ? null : r)}
-            style={{
-              width: '100%',
-              background: selRoom?.room === r.room ? statusBg[r.status] : 'white',
-              border: `1.5px solid ${selRoom?.room === r.room ? statusColor[r.status] : '#D4E4DA'}`,
-              borderRadius: 16,
-              padding: '14px 16px',
-              cursor: 'pointer',
-              textAlign: 'left',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, background: statusBg[r.status], borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: `1.5px solid ${statusColor[r.status]}40`, flexShrink: 0 }}>
-                <div style={{ width: 8, height: 8, borderRadius: 4, background: statusColor[r.status] }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: 16, fontWeight: 700, color: '#1A2420', margin: 0 }}>{r.room}호</p>
-                  <span style={{ padding: '1px 7px', background: statusBg[r.status], borderRadius: 6, fontFamily: "'Noto Sans KR', sans-serif", fontSize: 10, fontWeight: 600, color: statusColor[r.status] }}>{statusLabel[r.status]}</span>
-                </div>
-                <p style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 12, color: '#6B8A7A', margin: '2px 0 0' }}>{r.student} · 음식 {r.items.length}개</p>
-              </div>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ transform: selRoom?.room === r.room ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}><path d="M5 10L8 7L5 4" stroke="#B0C4BB" strokeWidth="1.5" strokeLinecap="round" /></svg>
-            </div>
-
-            {selRoom?.room === r.room && (
-              <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${statusColor[r.status]}30` }}>
-                {/* Student info */}
-                <div style={{ background: 'white', borderRadius: 10, padding: '10px 12px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <p style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 13, fontWeight: 600, color: '#1A2420', margin: 0 }}>{r.student}</p>
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#6B8A7A', margin: '2px 0 0' }}>{r.phone}</p>
-                  </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button style={{ padding: '6px 10px', background: '#E8F5EE', border: 'none', borderRadius: 8, fontFamily: "'Noto Sans KR', sans-serif", fontSize: 11, color: '#1B5E3B', cursor: 'pointer' }}>채팅</button>
-                    <button style={{ padding: '6px 10px', background: '#F4F7F5', border: 'none', borderRadius: 8, fontFamily: "'Noto Sans KR', sans-serif", fontSize: 11, color: '#6B8A7A', cursor: 'pointer' }}>전화</button>
-                  </div>
-                </div>
-                {/* Food items */}
-                {r.items.length > 0 ? r.items.map((item, i) => (
-                  <div key={i} style={{ background: 'white', borderRadius: 10, padding: '10px 12px', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <p style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 13, fontWeight: 600, color: '#1A2420', margin: 0 }}>{item.name}</p>
-                      <p style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 11, color: '#6B8A7A', margin: '1px 0 0' }}>{item.cat} · 보관: {item.stored}</p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#6B8A7A', margin: 0 }}>유통기한</p>
-                      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EF4444', margin: 0, fontWeight: 500 }}>{item.expiry}</p>
-                    </div>
-                  </div>
-                )) : (
-                  <p style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 12, color: '#B0C4BB', textAlign: 'center', padding: '8px 0' }}>등록된 음식 없음</p>
-                )}
-              </div>
-            )}
-          </button>
-        ))}
-      </div>
-
-      </div>
-      {/* Bottom nav */}
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'white', borderTop: '1px solid #E8F0EC', display: 'flex', padding: '8px 0 12px', zIndex: 10 }}>
-        {[
-          { icon: '❄️', label: '냉장고', active: false },
-          { icon: '📋', label: '음식정보', active: true },
-          { icon: '📢', label: '공지사항', active: false },
-          { icon: '⚙️', label: '메뉴', active: false },
-        ].map(tab => (
-          <button key={tab.label} style={{ flex: 1, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '4px 0' }}>
-            <span style={{ fontSize: 20 }}>{tab.icon}</span>
-            <span style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 10, color: tab.active ? '#1B5E3B' : '#B0C4BB', fontWeight: tab.active ? 700 : 400 }}>{tab.label}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
+      {byRoom.map(([room, roomFoods]) => <section className="dm-card" key={room}>
+        <button className="fridge-card-main" onClick={() => setExpandedRoom(current => current === room ? "" : room)}>
+          <span className="layout-control-icon">🏠</span>
+          <span className="grow"><strong>{room}</strong><small>등록 음식 {roomFoods.length}개</small></span>
+          <b>{expandedRoom === room ? "−" : "+"}</b>
+        </button>
+        {expandedRoom === room && <div className="room-detail-list">{roomFoods.map(food => {
+          const status = statusOf(food)
+          return <article key={food.id}>
+            <FoodIcon category={food.category} foodId={food.guideId?.replace(/^catalog-/, "")} emoji={food.icon} size="small" />
+            <div><strong>{food.name}</strong><p>{food.zone} · {food.shelfId || food.position} · {formatFoodQuantity(food.quantity, food.quantityUnit)}</p><small>등록 {new Date(food.registeredAt).toLocaleDateString("ko-KR")}</small></div>
+            <span className={`detail-status ${status.key}`}>{status.label}</span>
+            <button className="dm-danger-text" onClick={() => remove(food)}>삭제</button>
+          </article>
+        })}</div>}
+      </section>)}
+      {byRoom.length === 0 && <div className="dm-empty">이 냉장고에 실제로 등록된 음식이 없습니다.</div>}
+      <p className="dm-help">예시 음식은 표시하지 않습니다. 학생이 이 냉장고를 선택해 등록한 음식만 나타납니다.</p>
+    </main>
+  </div>
 }

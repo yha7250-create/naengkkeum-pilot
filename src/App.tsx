@@ -59,14 +59,14 @@ function StudentApp({ store }: { store: DormMealStore }) {
       case "schoolSelect": return <SchoolSelectScreen onNext={go} onBack={back} residence={store.residence} onSave={store.updateResidence} />
       case "dormSelect": return <DormSelectScreen onNext={go} onBack={back} initial={store.residence} onSave={store.updateResidence} fridges={store.fridges} />
       case "profileRegister": return <ProfileRegisterScreen onNext={go} onBack={back} initial={store.profile} onSave={store.updateProfile} />
-      case "fridge": return <FridgeScreen onNext={go} foods={store.foods} layout={store.fridgeLayout} residence={store.studentResidence} profile={store.profile} impact={store.impact} personalLimit={store.personalLimit} onComplete={store.completeFood} announcements={store.announcements} fridgeId={store.studentFridgeId} communityGoal={store.studentCommunityGoal} />
-      case "impact": return <ImpactScreen onBack={back} foods={store.foods} impact={store.impact} />
+      case "fridge": return <FridgeScreen onNext={go} foods={store.studentFoods} layout={store.fridgeLayout} residence={store.studentResidence} profile={store.profile} impact={store.impact} personalLimit={store.personalLimit} onComplete={store.completeFood} announcements={store.announcements} fridgeId={store.studentFridgeId} communityGoal={store.studentCommunityGoal} />
+      case "impact": return <ImpactScreen onBack={back} foods={store.studentFoods} impact={store.impact} />
       case "report": return <ReportScreen onBack={back} reports={store.reports} onSubmit={store.addReport} residence={store.studentResidence} profile={store.profile} />
       case "community": return <CommunityScreen onBack={back} rooms={store.rooms} onAddRoom={store.addRoom} onSend={store.sendMessage} residence={store.studentResidence} />
       case "menu": return <MenuScreen onBack={back} onNext={go} profile={store.profile} residence={store.studentResidence} />
       case "groupBuy": return <GroupBuyScreen onBack={back} rooms={store.rooms} profile={store.profile} residence={store.studentResidence} onAddRoom={store.addRoom} onJoin={store.joinGroupBuy} onTogglePayment={store.toggleGroupBuyPayment} />
-      case "addFood": return <AddFoodScreen onBack={back} onDone={store.addFood} usedUnits={store.usedUnits} usedUnitsByZone={store.usedUnitsByZone} storagePolicy={store.storagePolicy} foods={store.foods} layout={store.fridgeLayout} residence={store.studentResidence} profile={store.profile} quickFoods={store.quickFoods} />
-      case "myFoods": return <MyFoodsScreen onBack={back} onNext={go} foods={store.foods} profile={store.profile} onComplete={store.completeFood} onUpdateQuantity={store.updateFoodQuantity} />
+      case "addFood": return <AddFoodScreen onBack={back} onDone={store.addFood} usedUnits={store.usedUnits} usedUnitsByZone={store.usedUnitsByZone} storagePolicy={store.storagePolicy} foods={store.studentFoods} layout={store.fridgeLayout} residence={store.studentResidence} profile={store.profile} quickFoods={store.quickFoods} />
+      case "myFoods": return <MyFoodsScreen onBack={back} onNext={go} foods={store.studentFoods} profile={store.profile} onComplete={store.completeFood} onUpdateQuantity={store.updateFoodQuantity} />
       case "notificationSettings": return <NotificationSettingsScreen onBack={back} initial={store.notificationSettings} onSave={store.saveNotificationSettings} />
       case "profileEdit": return <ProfileEditScreen onBack={back} profile={store.profile} residence={store.studentResidence} fridges={store.fridges} activeFoodCount={store.ownedFoods.length} onSaveProfile={store.updateProfile} onSaveResidence={store.updateResidence} />
     }
@@ -106,12 +106,12 @@ function AdminApp({ store }: { store: DormMealStore }) {
       case "adminDormSelect": return <AdminDormSelectScreen onNext={go} onBack={back} residence={store.residence} managedAreas={store.adminManagedAreas} onSave={store.updateResidence} onSaveAreas={store.saveAdminManagedAreas} />
       case "adminFridgeSelect": return <AdminFridgeSelectScreen fridges={store.adminFridges} archivedFridges={store.archivedAdminFridges} managedAreas={store.adminManagedAreas} selectedId={store.selectedAdminFridgeId} onSelect={store.selectAdminFridge} onAdd={store.addAdminFridge} onArchive={store.archiveAdminFridge} onRestore={store.restoreAdminFridge} onBack={back} onNext={go} />
       case "adminFridgeConfig": return <FridgeConfigScreen adminMode fridgeId={store.activeAdminFridge?.id} onSaveName={store.renameAdminFridge} onNext={() => go("adminDashboard")} onBack={back} initial={store.adminFridgeLayout} residence={store.adminResidence} onSave={store.saveAdminFridgeLayout} />
-      case "adminDashboard": return <AdminDashboardScreen onNext={go} foods={store.foods} fridges={store.adminFridges} reports={store.reports} rooms={store.rooms} residence={store.adminResidence} adminName={store.adminSession ?? "RA"} storagePolicy={store.storagePolicy} activeFridge={store.activeAdminFridge} communityGoal={store.adminCommunityGoal} onUpdateGoal={store.updateCommunityGoalTarget} />
-      case "adminFridge": return <AdminFridgeOverviewScreen onNext={go} foods={store.foods} layout={store.adminFridgeLayout} residence={store.adminResidence} profile={store.profile} />
+      case "adminDashboard": return <AdminDashboardScreen onNext={go} foods={store.adminFoods} fridges={store.adminFridges} reports={store.reports} rooms={store.rooms} residence={store.adminResidence} adminName={store.adminSession ?? "RA"} storagePolicy={store.storagePolicy} activeFridge={store.activeAdminFridge} communityGoal={store.adminCommunityGoal} onUpdateGoal={store.updateCommunityGoalTarget} />
+      case "adminFridge": return <AdminFridgeOverviewScreen onNext={go} foods={store.adminFoods} layout={store.adminFridgeLayout} residence={store.adminResidence} profile={store.profile} />
       case "adminOperations": return <AdminOperationsScreen onBack={back} onNext={go} fridges={store.adminFridges} reports={store.reports} onUpdateStatus={store.updateReportStatus} announcements={store.announcements} onSendAnnouncement={store.sendAnnouncement} />
-      case "adminStats": return <AdminStatsScreen onNext={go} activities={store.activities} foods={store.foods} fridges={store.adminFridges} />
+      case "adminStats": return <AdminStatsScreen onNext={go} activities={store.activities} foods={store.adminFoods} fridges={store.adminFridges} />
       case "adminStoragePolicy": return <AdminStoragePolicyScreen initial={store.storagePolicy} onBack={back} onSave={store.saveStoragePolicy} />
-      case "adminFoodDetail": return <AdminFoodDetailScreen onBack={back} />
+      case "adminFoodDetail": return <AdminFoodDetailScreen onBack={back} foods={store.adminFoods} residence={store.adminResidence} onRemove={store.removeFood} />
       case "adminMenu": return <AdminMenuScreen onBack={back} onNext={go} />
     }
   })()
