@@ -7,9 +7,12 @@ interface Props {
   onAddRoom: (room: ChatRoom) => void
   onSend: (roomId: string, text: string) => void
   residence: ResidenceProfile
+  adminMode?: boolean
+  adminName?: string
 }
 
-export default function CommunityScreen({ onBack, rooms, onAddRoom, onSend, residence }: Props) {
+export default function CommunityScreen({ onBack, rooms, onAddRoom, onSend, residence, adminMode = false, adminName = "관리자" }: Props) {
+  const adminLabel = adminName.startsWith("관리자") ? adminName : `관리자 ${adminName}`
   const [tab, setTab] = useState<"care" | "groupbuy">("care")
   const filtered = useMemo(() => rooms.filter(room => room.type === tab), [rooms, tab])
   const [roomId, setRoomId] = useState(filtered[0]?.id ?? "")
@@ -33,7 +36,7 @@ export default function CommunityScreen({ onBack, rooms, onAddRoom, onSend, resi
       adminPresent: true, participants: 1,
       pickupPlace: tab === "groupbuy" ? pickup.trim() || "미정" : undefined,
       settlement: tab === "groupbuy" ? settlement.trim() || "미정" : undefined,
-      messages: [{ id: uid("message"), author: "관리자 김관리", role: "admin", text: "관리자가 참여했습니다. 개인정보와 계좌정보 공개에 주의해 주세요.", sentAt: "지금" }],
+      messages: [{ id: uid("message"), author: adminMode ? adminLabel : "관리자", role: "admin", text: "관리자가 참여했습니다. 개인정보와 계좌정보 공개에 주의해 주세요.", sentAt: "지금" }],
     }
     onAddRoom(room)
     setRoomId(room.id)
@@ -53,7 +56,7 @@ export default function CommunityScreen({ onBack, rooms, onAddRoom, onSend, resi
     <div className="dm-screen chat-screen">
       <header className="dm-header">
         <button className="dm-icon-button dark" onClick={onBack} aria-label="뒤로 가기">‹</button>
-        <div><p>같은 층 사용자 · 관리자 동행</p><h2>{residence.floor}층 커뮤니티</h2></div>
+        <div><p>{adminMode ? "관리자 전용 · 대화방 운영" : "같은 층 사용자 · 관리자 동행"}</p><h2>{adminMode ? "커뮤니티 관리" : `${residence.floor}층 커뮤니티`}</h2></div>
         <button className="dm-header-action" onClick={() => setCreating(value => !value)}>+ 방</button>
       </header>
 
@@ -81,7 +84,7 @@ export default function CommunityScreen({ onBack, rooms, onAddRoom, onSend, resi
       {active ? (
         <div className="conversation">
           <div className="conversation-head">
-            <div><h3>{active.title}</h3><p>{active.location} · <b>관리자 김관리 참여 중</b></p></div>
+            <div><h3>{active.title}</h3><p>{active.location} · <b>{adminMode ? adminLabel : "관리자"} 참여 중</b></p></div>
             <span className="admin-shield">관리</span>
           </div>
           {active.type === "groupbuy" && <div className="groupbuy-meta"><div><span>수령 장소</span><strong>{active.pickupPlace}</strong></div><div><span>정산</span><strong>{active.settlement}</strong></div></div>}

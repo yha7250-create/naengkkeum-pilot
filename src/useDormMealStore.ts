@@ -520,14 +520,14 @@ export function useDormMealStore() {
     setStoragePolicy(policy)
   }
 
-  function sendMessage(roomId: string, text: string, role: "student" | "admin" = "student") {
+  function sendMessage(roomId: string, text: string, role: "student" | "admin" = "student", authorName = "관리자") {
     const clean = text.trim()
     if (!clean) return
     setRooms(current => current.map(room => room.id === roomId ? {
       ...room,
       messages: [...room.messages, {
         id: uid("message"),
-        author: role === "admin" ? "관리자 김관리" : "302호",
+        author: role === "admin" ? (authorName.startsWith("관리자") ? authorName : `관리자 ${authorName}`) : "302호",
         role,
         text: clean,
         sentAt: new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false }),

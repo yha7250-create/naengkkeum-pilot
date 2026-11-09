@@ -32,7 +32,7 @@ import { useDormMealStore, type DormMealStore } from "./useDormMealStore"
 import PilotGate from "./pilot/PilotGate"
 
 type StudentScreen = "splash" | "schoolSelect" | "dormSelect" | "profileRegister" | "profileEdit" | "fridge" | "impact" | "report" | "community" | "menu" | "groupBuy" | "addFood" | "myFoods" | "notificationSettings"
-type AdminScreen = "adminSplash" | "adminCode" | "adminCodeIssue" | "adminSchoolSelect" | "adminDormSelect" | "adminFridgeSelect" | "adminFridgeConfig" | "adminFridge" | "adminOperations" | "adminFoodDetail" | "adminMenu" | "adminDashboard" | "adminStats" | "adminStoragePolicy"
+type AdminScreen = "adminSplash" | "adminCode" | "adminCodeIssue" | "adminSchoolSelect" | "adminDormSelect" | "adminFridgeSelect" | "adminFridgeConfig" | "adminFridge" | "adminOperations" | "adminCommunity" | "adminFoodDetail" | "adminMenu" | "adminDashboard" | "adminStats" | "adminStoragePolicy"
 
 const studentLabels: Record<StudentScreen, string> = {
   splash: "시작", schoolSelect: "학교", dormSelect: "기숙사", profileRegister: "내 정보",
@@ -44,7 +44,7 @@ const studentLabels: Record<StudentScreen, string> = {
 const adminLabels: Record<AdminScreen, string> = {
   adminSplash: "시작", adminCode: "코드 로그인", adminCodeIssue: "코드 발행", adminSchoolSelect: "학교", adminDormSelect: "관리 구역", adminFridgeConfig: "냉장고 구조",
   adminFridgeSelect: "냉장고 선택",
-  adminFridge: "냉장고 현황", adminOperations: "운영 센터", adminFoodDetail: "음식 정보", adminMenu: "메뉴", adminDashboard: "대시보드", adminStats: "통계", adminStoragePolicy: "보관 한도",
+  adminFridge: "냉장고 현황", adminOperations: "운영 센터", adminCommunity: "커뮤니티 관리", adminFoodDetail: "음식 정보", adminMenu: "메뉴", adminDashboard: "대시보드", adminStats: "통계", adminStoragePolicy: "보관 한도",
 }
 
 function StudentApp({ store }: { store: DormMealStore }) {
@@ -117,6 +117,7 @@ function AdminApp({ store }: { store: DormMealStore }) {
       case "adminDashboard": return <AdminDashboardScreen onNext={go} foods={store.adminFoods} fridges={store.adminFridges} reports={store.reports} rooms={store.rooms} residence={store.adminResidence} adminName={store.adminSession ?? "관리자"} storagePolicy={store.storagePolicy} activeFridge={store.activeAdminFridge} communityGoal={store.adminCommunityGoal} onUpdateGoal={store.updateCommunityGoal} />
       case "adminFridge": return <AdminFridgeOverviewScreen onNext={go} foods={store.adminFoods} layout={store.adminFridgeLayout} residence={store.adminResidence} profile={store.profile} />
       case "adminOperations": return <AdminOperationsScreen onBack={back} onNext={go} fridges={store.adminFridges} reports={store.reports} onUpdateStatus={store.updateReportStatus} announcements={store.announcements} onSendAnnouncement={store.sendAnnouncement} />
+      case "adminCommunity": return <CommunityScreen adminMode adminName={store.adminSession ?? "관리자"} onBack={back} rooms={store.rooms} onAddRoom={store.addRoom} onSend={(roomId, text) => store.sendMessage(roomId, text, "admin", store.adminSession ?? "관리자")} residence={store.adminResidence} />
       case "adminStats": return <AdminStatsScreen onNext={go} activities={store.activities} foods={store.adminFoods} fridges={store.adminFridges} />
       case "adminStoragePolicy": return <AdminStoragePolicyScreen initial={store.storagePolicy} onBack={back} onSave={store.saveStoragePolicy} />
       case "adminFoodDetail": return <AdminFoodDetailScreen onBack={back} foods={store.adminFoods} residence={store.adminResidence} onRemove={store.removeFood} />

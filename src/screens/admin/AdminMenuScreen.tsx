@@ -25,7 +25,7 @@ export default function AdminMenuScreen({ onBack, onNext }: Props) {
     { icon: "📦", label: "개인 보관 한도", sub: "총량·냉장·냉동·선반별 제한 설정", screen: "adminStoragePolicy" },
     { icon: "!", label: "정리 운영센터", sub: "신고와 정리 우선순위 확인", screen: "adminOperations" },
     { icon: "＋", label: "관리자 코드 발행", sub: "승인된 다른 관리자의 로그인 코드", screen: "adminCodeIssue" },
-    { icon: "💬", label: "커뮤니티 관리", sub: "사용자 대화방과 공지 확인", screen: "adminOperations" },
+    { icon: "💬", label: "커뮤니티 관리", sub: "사용자 대화방과 공지 확인", screen: "adminCommunity" },
   ]
 
   return <div className="dm-screen ra-menu-screen">
