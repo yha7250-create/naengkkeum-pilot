@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import CameraCapture from "../../components/CameraCapture"
-import DynamicFridge, { type FridgeSlot, type FridgeZone } from "../../components/DynamicFridge"
+import DynamicFridge, { getFridgeSlots, type FridgeSlot, type FridgeZone } from "../../components/DynamicFridge"
 import FoodIcon from "../../components/FoodIcon"
 import { foodCatalog, foodCatalogGroups, type FoodCatalogGroup, type FoodCatalogItem } from "../../foodCatalog"
 import { foodCategories, foodKinds, foodSafetySource, getFoodGuide } from "../../foodGuide"
@@ -17,6 +17,36 @@ interface Props {
   residence: ResidenceProfile
   profile: UserProfile
   quickFoods: FoodQuickPick[]
+}
+
+interface AddFoodDraft {
+  name: string
+  selectedFoodId: string
+  kind: string
+  category: string
+  size: StorageSize
+  storageZone: FridgeZone
+  slotId: string
+  subPosition: ShelfPosition
+  expiry: string
+  openedAt: string
+  quantity: number
+  quantityUnit: FoodQuantityUnit
+  memo: string
+  price: string
+  mode: "personal" | "shared"
+  coOwners: string[]
+  photoData: string
+  photoName: string
+  quantityTouched: boolean
+}
+
+function readDraft(key: string): Partial<AddFoodDraft> {
+  try {
+    return JSON.parse(window.localStorage.getItem(key) ?? "{}") as Partial<AddFoodDraft>
+  } catch {
+    return {}
+  }
 }
 
 const sizes: { key: StorageSize; label: string; units: number }[] = [
@@ -63,29 +93,33 @@ function addDaysToDate(value: string, days: number) {
 }
 
 export default function AddFoodScreen({ onBack, onDone, usedUnits, usedUnitsByZone, storagePolicy, foods, layout, residence, profile, quickFoods }: Props) {
-  const [name, setName] = useState("")
-  const [selectedFoodId, setSelectedFoodId] = useState("")
+  const draftKey = `naengkkeum.addFoodDraft.${profile.room}`
+  const draft = useMemo(() => readDraft(draftKey), [draftKey])
+  const slots = useMemo(() => getFridgeSlots(layout), [layout])
+  const [name, setName] = useState(draft.name ?? "")
+  const [selectedFoodId, setSelectedFoodId] = useState(draft.selectedFoodId ?? "")
   const [catalogQuery, setCatalogQuery] = useState("")
   const [catalogGroup, setCatalogGroup] = useState<"전체" | FoodCatalogGroup>("전체")
   const [showAllFoods, setShowAllFoods] = useState(false)
   const [showAdvancedType, setShowAdvancedType] = useState(false)
-  const [kind, setKind] = useState<string>(foodKinds[0])
-  const [category, setCategory] = useState<string>(foodCategories[0])
-  const [size, setSize] = useState<StorageSize>("small")
-  const [storageZone, setStorageZone] = useState<FridgeZone>("냉장실")
-  const [slot, setSlot] = useState<FridgeSlot | null>(null)
-  const [subPosition, setSubPosition] = useState<ShelfPosition>("center")
-  const [expiry, setExpiry] = useState("")
-  const [openedAt, setOpenedAt] = useState("")
-  const [quantity, setQuantity] = useState(1)
-  const [quantityUnit, setQuantityUnit] = useState<FoodQuantityUnit>("개")
-  const [memo, setMemo] = useState("")
-  const [price, setPrice] = useState("")
-  const [mode, setMode] = useState<"personal" | "shared">("personal")
+  const [kind, setKind] = useState<string>(draft.kind ?? foodKinds[0])
+  const [category, setCategory] = useState<string>(draft.category ?? foodCategories[0])
+  const [size, setSize] = useState<StorageSize>(draft.size ?? "small")
+  const [storageZone, setStorageZone] = useState<FridgeZone>(draft.storageZone ?? "냉장실")
+  const [slot, setSlot] = useState<FridgeSlot | null>(() => slots.find(item => item.id === draft.slotId) ?? null)
+  const [subPosition, setSubPosition] = useState<ShelfPosition>(draft.subPosition ?? "center")
+  const [expiry, setExpiry] = useState(draft.expiry ?? "")
+  const [openedAt, setOpenedAt] = useState(draft.openedAt ?? "")
+  const [quantity, setQuantity] = useState(draft.quantity ?? 1)
+  const [quantityUnit, setQuantityUnit] = useState<FoodQuantityUnit>(draft.quantityUnit ?? "개")
+  const [quantityTouched, setQuantityTouched] = useState(Boolean(draft.quantityTouched))
+  const [memo, setMemo] = useState(draft.memo ?? "")
+  const [price, setPrice] = useState(draft.price ?? "")
+  const [mode, setMode] = useState<"personal" | "shared">(draft.mode ?? "personal")
   const [roomInput, setRoomInput] = useState("")
-  const [coOwners, setCoOwners] = useState<string[]>([profile.room])
-  const [photoData, setPhotoData] = useState("")
-  const [photoName, setPhotoName] = useState("")
+  const [coOwners, setCoOwners] = useState<string[]>(draft.coOwners?.length ? draft.coOwners : [profile.room])
+  const [photoData, setPhotoData] = useState(draft.photoData ?? "")
+  const [photoName, setPhotoName] = useState(draft.photoName ?? "")
   const [error, setError] = useState("")
   const [saved, setSaved] = useState(false)
 
@@ -123,6 +157,24 @@ export default function AddFoodScreen({ onBack, onDone, usedUnits, usedUnitsByZo
     if (!candidates.length) return { date: addDays(guide.days), text: `날짜 미입력 · ${guide.days}일 후 상태 확인` }
     return candidates.sort((a, b) => a.date.getTime() - b.date.getTime())[0]
   }, [expiry, openedUseBy, guide.days])
+  const optionalCount = [expiry, openedAt, price, memo, photoData].filter(Boolean).length
+
+  useEffect(() => {
+    if (saved) return
+    const nextDraft: AddFoodDraft = {
+      name, selectedFoodId, kind, category, size, storageZone, slotId: slot?.id ?? "", subPosition,
+      expiry, openedAt, quantity, quantityUnit, memo, price, mode, coOwners, photoData, photoName, quantityTouched,
+    }
+    try {
+      window.localStorage.setItem(draftKey, JSON.stringify(nextDraft))
+    } catch {
+      try {
+        window.localStorage.setItem(draftKey, JSON.stringify({ ...nextDraft, photoData: "", photoName: "" }))
+      } catch {
+        // The form still works even when private browsing blocks draft storage.
+      }
+    }
+  }, [draftKey, saved, name, selectedFoodId, kind, category, size, storageZone, slot, subPosition, expiry, openedAt, quantity, quantityUnit, memo, price, mode, coOwners, photoData, photoName, quantityTouched])
 
   function addRoom() {
     const clean = roomInput.trim()
@@ -138,11 +190,12 @@ export default function AddFoodScreen({ onBack, onDone, usedUnits, usedUnitsByZo
     setName(food.name)
     setKind(food.kind)
     setCategory(food.category)
-    setStorageZone(food.zone)
-    const nextUnit = suggestedQuantityUnit(food)
-    setQuantityUnit(nextUnit)
-    setQuantity(initialQuantityFor(nextUnit))
-    setSlot(null)
+    if (!slot) setStorageZone(food.zone)
+    if (!quantityTouched) {
+      const nextUnit = suggestedQuantityUnit(food)
+      setQuantityUnit(nextUnit)
+      setQuantity(initialQuantityFor(nextUnit))
+    }
     setError("")
   }
 
@@ -156,15 +209,17 @@ export default function AddFoodScreen({ onBack, onDone, usedUnits, usedUnitsByZo
     setName(quick.name)
     setKind(quick.kind)
     setCategory(quick.category)
-    setStorageZone(quick.zone)
-    setQuantityUnit(quick.quantityUnit)
-    setQuantity(initialQuantityFor(quick.quantityUnit))
-    setSlot(null)
+    if (!slot) setStorageZone(quick.zone)
+    if (!quantityTouched) {
+      setQuantityUnit(quick.quantityUnit)
+      setQuantity(initialQuantityFor(quick.quantityUnit))
+    }
     setError("")
   }
 
   function changeQuantity(direction: -1 | 1) {
     const step = quantityStepFor(quantityUnit)
+    setQuantityTouched(true)
     setQuantity(value => normalizeFoodQuantity(value + direction * step, quantityUnit))
   }
 
@@ -188,6 +243,7 @@ export default function AddFoodScreen({ onBack, onDone, usedUnits, usedUnitsByZo
       price: price ? Number(price) : undefined, guideId: guide.id,
       icon: selectedFood?.icon,
     })
+    window.localStorage.removeItem(draftKey)
     setSaved(true)
     window.setTimeout(onBack, 700)
   }
@@ -207,18 +263,26 @@ export default function AddFoodScreen({ onBack, onDone, usedUnits, usedUnitsByZo
           {!catalogQuery && filteredFoods.length > 12 && <button type="button" className="catalog-more" onClick={() => setShowAllFoods(value => !value)}>{showAllFoods ? "간단히 보기" : `${filteredFoods.length - 12}개 더 보기`}</button>}
         </section>
         <section><label className="dm-label" htmlFor="food-name">음식 이름 <b>필수</b></label><input id="food-name" className="dm-input large" value={name} onChange={event => { setName(event.target.value); if (event.target.value !== selectedFood?.name) setSelectedFoodId("") }} placeholder="목록에 없다면 직접 입력하세요" />{selectedFood && <p className="selected-food-hint"><span>{selectedFood.icon}</span><b>{selectedFood.name}</b> · {selectedFood.group} · {selectedFood.zone} 추천</p>}</section>
-        <section><span className="dm-label">수량과 단위</span><div className="quantity-unit-row"><div className="quantity-picker"><button type="button" onClick={() => changeQuantity(-1)} aria-label="수량 줄이기">−</button><input type="number" min={quantityStepFor(quantityUnit)} step={quantityStepFor(quantityUnit)} value={quantity} onChange={event => setQuantity(Number(event.target.value))} aria-label="수량" /><button type="button" onClick={() => changeQuantity(1)} aria-label="수량 늘리기">+</button></div><select className="quantity-unit-select" value={quantityUnit} onChange={event => { const unit = event.target.value as FoodQuantityUnit; setQuantityUnit(unit); setQuantity(initialQuantityFor(unit)) }} aria-label="수량 단위">{foodQuantityUnits.map(unit => <option key={unit} value={unit}>{unit}</option>)}</select></div><p className="dm-help">선택한 음식에 맞는 단위를 먼저 추천해요. 수량과 냉장고 공간 점유 칸 수는 별도로 계산합니다.</p></section>
+        <section><span className="dm-label">수량과 단위</span><div className="quantity-unit-row"><div className="quantity-picker"><button type="button" onClick={() => changeQuantity(-1)} aria-label="수량 줄이기">−</button><input type="number" min={quantityStepFor(quantityUnit)} step={quantityStepFor(quantityUnit)} value={quantity} onChange={event => { setQuantityTouched(true); setQuantity(Number(event.target.value)) }} aria-label="수량" /><button type="button" onClick={() => changeQuantity(1)} aria-label="수량 늘리기">+</button></div><select className="quantity-unit-select" value={quantityUnit} onChange={event => { const unit = event.target.value as FoodQuantityUnit; setQuantityTouched(true); setQuantityUnit(unit); setQuantity(initialQuantityFor(unit)) }} aria-label="수량 단위">{foodQuantityUnits.map(unit => <option key={unit} value={unit}>{unit}</option>)}</select></div><p className="dm-help">선택한 음식에 맞는 단위를 먼저 추천해요. 직접 바꾼 수량은 다른 음식을 눌러도 유지됩니다.</p></section>
         <section><span className="dm-label">등록 방식</span><div className="dm-segmented"><button className={mode === "personal" ? "active" : ""} onClick={() => setMode("personal")}>나만 등록</button><button className={mode === "shared" ? "active" : ""} onClick={() => setMode("shared")}>함께 등록</button></div>
           {mode === "shared" && <div className="shared-register"><p>같이 소유할 방을 추가하면 각자의 ‘내 음식’에 함께 보여요.</p><div className="room-add"><input className="dm-input" inputMode="numeric" value={roomInput} onChange={event => setRoomInput(event.target.value)} onKeyDown={event => event.key === "Enter" && addRoom()} placeholder="예: 304" /><button onClick={addRoom}>추가</button></div><div className="owner-chips">{coOwners.map(room => <button key={room} disabled={room === profile.room} onClick={() => setCoOwners(items => items.filter(item => item !== room))}>{room}{room === profile.room ? " · 나" : " ×"}</button>)}</div></div>}
         </section>
-        <section className="food-guide-card"><div className="dm-row between"><strong>📖 {guide.title} 보관 가이드</strong><span>자동 추천</span></div><h3>{guide.days}일 뒤 상태 확인 알림</h3><em>안전 섭취기한 아님 · 제품 표시 우선</em><p>{guide.summary}</p><p><b>보관</b> {guide.storage}</p><p><b>주의</b> {guide.caution}</p><a href={foodSafetySource.url} target="_blank" rel="noreferrer">{foodSafetySource.label} ↗</a><small>{foodSafetySource.note}</small></section>
-        <section className="advanced-food-type"><button type="button" onClick={() => setShowAdvancedType(value => !value)}><span><b>분류 직접 수정</b><small>{kind} · {category}</small></span><i>{showAdvancedType ? "−" : "+"}</i></button>{showAdvancedType && <div className="advanced-food-type-body"><span className="dm-label">음식 종류</span><div className="dm-pills guide-pills">{foodKinds.map(item => <button key={item} className={kind === item ? "active" : ""} onClick={() => { setKind(item); setSelectedFoodId("") }}>{item}</button>)}</div><span className="dm-label">카테고리</span><div className="food-category-grid">{foodCategories.map(item => <button key={item} className={category === item ? "active" : ""} onClick={() => { setCategory(item); setSelectedFoodId("") }}><FoodIcon category={item} size="medium" /><span>{item}</span></button>)}</div></div>}</section>
+        <details className="food-guide-details">
+          <summary><span><b>📖 {guide.title} 보관 안내</b><small>{guide.days}일 뒤 상태 확인 권장</small></span><strong>자세히 보기</strong></summary>
+          <section className="food-guide-card"><div className="dm-row between"><strong>자동 보관 추천</strong><span>공공 지침 참고</span></div><h3>{guide.days}일 뒤 상태 확인 알림</h3><em>안전 섭취기한 아님 · 제품 표시 우선</em><p>{guide.summary}</p><p><b>보관</b> {guide.storage}</p><p><b>주의</b> {guide.caution}</p><a href={foodSafetySource.url} target="_blank" rel="noreferrer">{foodSafetySource.label} ↗</a><small>{foodSafetySource.note}</small></section>
+        </details>
         <section><span className="dm-label">보관할 칸 선택</span><div className="fridge-zone-switch selector-zone-switch"><button className={storageZone === "냉장실" ? "active fridge" : ""} onClick={() => { setStorageZone("냉장실"); setSlot(null) }}><span>❄️</span><strong>냉장실</strong></button><button className={storageZone === "냉동고" ? "active freezer" : ""} onClick={() => { setStorageZone("냉동고"); setSlot(null) }}><span>🧊</span><strong>냉동고</strong></button></div><p className="tap-guide">실제로 음식을 넣을 칸을 선택해 주세요. 구조는 관리자가 등록한 그대로 표시됩니다.</p><div className="fridge-selector"><DynamicFridge layout={layout} zoneView={storageZone} selected={slot?.id} onSelect={setSlot} foods={foods} compact /></div>{slot && <><div className="sub-position-picker registration-position"><span>칸 안의 위치</span><div>{(Object.entries(shelfPositionLabels) as [ShelfPosition, string][]).map(([key, label]) => <button type="button" key={key} className={subPosition === key ? "active" : ""} onClick={() => setSubPosition(key)}>{label}</button>)}</div></div><div className="selected-location"><span>{slot.id}</span><strong>{slot.label} · {shelfPositionLabels[subPosition]}</strong><small>{slot.zone}</small></div></>}</section>
         <section><span className="dm-label">음식 크기</span><div className="size-selector">{sizes.map(item => <button key={item.key} className={size === item.key ? "active" : ""} onClick={() => setSize(item.key)}><strong>{item.units}칸</strong><small>{item.label}</small></button>)}</div><p className={`limit-preview ${usedUnits + units > storagePolicy.totalUnits || usedUnitsByZone[storageZone] + units > zoneLimit ? "over" : ""}`}>등록 후 전체 {usedUnits + units}/{storagePolicy.totalUnits}칸 · {storageZone} {usedUnitsByZone[storageZone] + units}/{zoneLimit}칸</p></section>
-        <section><label className="dm-label" htmlFor="price">구매 가격 <small>(선택)</small></label><div className="price-input"><input id="price" className="dm-input" type="number" min="0" value={price} onChange={event => setPrice(event.target.value)} placeholder="2980" /><span>원</span></div><p className="dm-help">가격을 입력하면 절감 리포트에서 아낀 금액을 더 정확히 계산할 수 있어요.</p></section>
-        <CameraCapture value={photoData} onChange={(data, file) => { setPhotoData(data); setPhotoName(file) }} />
-        <section className="expiry-card"><div><label className="dm-label" htmlFor="expiry">소비기한 <small>(선택)</small></label><small>포장에 표시된 날짜가 있으면 입력해 주세요.</small></div><div className="food-date-grid"><label className="food-date-card"><span>소비기한</span><input id="expiry" type="date" className="dm-input" value={expiry} onChange={event => setExpiry(event.target.value)} /></label><label className="food-date-card"><span>개봉일 <small>(선택)</small></span><input id="opened-at" type="date" className="dm-input" value={openedAt} max={new Date().toISOString().slice(0, 10)} onChange={event => setOpenedAt(event.target.value)} /></label></div>{openedUseBy && <div className="opened-recommendation"><span>개봉 후 상태 확인 권장일</span><strong>{openedUseBy}</strong><small>{guide.title} 기준 {guide.days}일 후 · 제품 표시와 냄새·색·질감을 우선 확인하세요.</small></div>}<div className="dm-notice"><strong>예정 알림</strong><span>{reminder.text}</span></div></section>
-        <section><label className="dm-label" htmlFor="food-memo">메모 <small>(선택)</small></label><textarea id="food-memo" className="dm-input food-memo" value={memo} maxLength={120} onChange={event => setMemo(event.target.value)} placeholder="예: 금요일 아침에 먹기, 소스는 문칸에 있음" /><p className="memo-count">{memo.length}/120</p></section>
+        <details className="optional-registration">
+          <summary><span><b>선택 정보 더 입력하기</b><small>소비기한 · 개봉일 · 사진 · 가격 · 메모 · 분류</small></span><strong>{optionalCount ? `${optionalCount}개 입력됨` : "선택"}</strong></summary>
+          <div className="optional-registration-body">
+            <section className="advanced-food-type"><button type="button" onClick={() => setShowAdvancedType(value => !value)}><span><b>분류 직접 수정</b><small>{kind} · {category}</small></span><i>{showAdvancedType ? "−" : "+"}</i></button>{showAdvancedType && <div className="advanced-food-type-body"><span className="dm-label">음식 종류</span><div className="dm-pills guide-pills">{foodKinds.map(item => <button key={item} className={kind === item ? "active" : ""} onClick={() => { setKind(item); setSelectedFoodId("") }}>{item}</button>)}</div><span className="dm-label">카테고리</span><div className="food-category-grid">{foodCategories.map(item => <button key={item} className={category === item ? "active" : ""} onClick={() => { setCategory(item); setSelectedFoodId("") }}><FoodIcon category={item} size="medium" /><span>{item}</span></button>)}</div></div>}</section>
+            <section className="expiry-card"><div><label className="dm-label" htmlFor="expiry">소비기한·개봉일 <small>(선택)</small></label><small>포장에 표시된 날짜가 있으면 입력해 주세요.</small></div><div className="food-date-grid"><label className="food-date-card"><span>소비기한</span><input id="expiry" type="date" className="dm-input" value={expiry} onChange={event => setExpiry(event.target.value)} /></label><label className="food-date-card"><span>개봉일</span><input id="opened-at" type="date" className="dm-input" value={openedAt} max={new Date().toISOString().slice(0, 10)} onChange={event => setOpenedAt(event.target.value)} /></label></div>{openedUseBy && <div className="opened-recommendation"><span>개봉 후 상태 확인 권장일</span><strong>{openedUseBy}</strong><small>{guide.title} 기준 {guide.days}일 후 · 제품 표시와 냄새·색·질감을 우선 확인하세요.</small></div>}<div className="dm-notice"><strong>예정 알림</strong><span>{reminder.text}</span></div></section>
+            <section><label className="dm-label" htmlFor="price">구매 가격 <small>(선택)</small></label><div className="price-input"><input id="price" className="dm-input" type="number" min="0" value={price} onChange={event => setPrice(event.target.value)} placeholder="2980" /><span>원</span></div><p className="dm-help">입력하면 절감 리포트의 금액 추정이 더 정확해집니다.</p></section>
+            <CameraCapture value={photoData} onChange={(data, file) => { setPhotoData(data); setPhotoName(file) }} />
+            <section><label className="dm-label" htmlFor="food-memo">메모 <small>(선택)</small></label><textarea id="food-memo" className="dm-input food-memo" value={memo} maxLength={120} onChange={event => setMemo(event.target.value)} placeholder="예: 금요일 아침에 먹기, 소스는 문칸에 있음" /><p className="memo-count">{memo.length}/120</p></section>
+          </div>
+        </details>
         {error && <p className="dm-error">{error}</p>}{saved && <p className="dm-success">등록 정보가 ‘내 음식’과 냉장고 화면에 저장되었습니다.</p>}
         <button className="dm-primary" onClick={submit} disabled={saved}>등록 완료 · {slot?.id ?? "위치 미선택"}</button>
       </main>
