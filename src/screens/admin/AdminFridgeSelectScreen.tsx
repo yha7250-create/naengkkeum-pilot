@@ -67,7 +67,7 @@ export default function AdminFridgeSelectScreen({ fridges, archivedFridges, mana
         </section>
 
         {adding && <section className="ra-add-fridge-card">
-          <div className="dm-section-title"><div><span className="dm-eyebrow">NEW FRIDGE</span><h3>냉장고 이름 등록</h3></div><span className="dm-badge green">RA 전용</span></div>
+          <div className="dm-section-title"><div><span className="dm-eyebrow">NEW FRIDGE</span><h3>냉장고 이름 등록</h3></div><span className="dm-badge green">관리자 전용</span></div>
           <label><span>설치 위치</span><select className="dm-input" value={areaId} onChange={event => setAreaId(event.target.value)}>{managedAreas.map(area => <option key={area.id} value={area.id}>{areaLabel(area)}</option>)}</select></label>
           <label><span>냉장고 이름</span><input className="dm-input" value={name} onChange={event => setName(event.target.value)} placeholder="예: 중앙 냉장고, 냉장고 B" maxLength={24} /></label>
           <p>이름을 등록한 다음 실제 선반·문칸·냉동실 구조를 설정합니다.</p>
@@ -102,7 +102,7 @@ export default function AdminFridgeSelectScreen({ fridges, archivedFridges, mana
           {showArchive && <div>{archivedFridges.map(fridge => <article key={fridge.id}><span><small>{fridge.dorm} · {fridge.building} · {fridge.floor}</small><strong>{fridge.label}</strong></span><button onClick={() => { onRestore(fridge.id); setNotice(`${fridge.label} 운영을 다시 시작했습니다.`) }}>복구</button></article>)}</div>}
         </section>}
       </main>
-      {archiveTarget && <div className="dm-modal-backdrop" role="presentation" onClick={() => setArchiveTarget(null)}><section className="dm-modal archive-confirm" role="dialog" aria-modal="true" aria-label="냉장고 운영 종료 확인" onClick={event => event.stopPropagation()}><span className="archive-illustration">🧊</span><h3>{archiveTarget.label} 운영을 종료할까요?</h3><p>학생 화면에서는 즉시 숨겨지고 새 음식 등록도 막힙니다. 기존 음식·신고·통계 기록은 지우지 않고 보관하며 나중에 복구할 수 있어요.</p><div><button onClick={() => setArchiveTarget(null)}>취소</button><button className="danger" onClick={archiveFridge}>운영 종료</button></div></section></div>}
+      {archiveTarget && <div className="dm-modal-backdrop" role="presentation" onClick={() => setArchiveTarget(null)}><section className="dm-modal archive-confirm" role="dialog" aria-modal="true" aria-label="냉장고 운영 종료 확인" onClick={event => event.stopPropagation()}><span className="archive-illustration">🧊</span><h3>{archiveTarget.label} 운영을 종료할까요?</h3><p>사용자 화면에서는 즉시 숨겨지고 새 음식 등록도 막힙니다. 기존 음식·신고·통계 기록은 지우지 않고 보관하며 나중에 복구할 수 있어요.</p><div><button onClick={() => setArchiveTarget(null)}>취소</button><button className="danger" onClick={archiveFridge}>운영 종료</button></div></section></div>}
     </div>
   )
 }

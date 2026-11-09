@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react"
 import DynamicFridge, { getFridgeSlots, type FridgeZone } from "../../components/DynamicFridge"
+import DiscardConfirmDialog from "../../components/DiscardConfirmDialog"
+import FoodLocationDialog from "../../components/FoodLocationDialog"
 import FoodIcon from "../../components/FoodIcon"
-import { foodTargetDate, type CommunityGoal, type FoodItem, type FridgeAnnouncement, type FridgeLayout, type ImpactStats, type ResidenceProfile, type UserProfile } from "../../model"
+import { foodTargetDate, shelfPositionLabels, type CommunityGoal, type FoodItem, type FridgeAnnouncement, type FridgeLayout, type ImpactStats, type ResidenceProfile, type ShelfPosition, type UserProfile } from "../../model"
+import type { FridgeSlot } from "../../components/DynamicFridge"
 
 interface Props {
   onNext: (screen: string) => void
@@ -12,6 +15,7 @@ interface Props {
   impact: ImpactStats
   personalLimit: number
   onComplete: (id: string, outcome: "consumed" | "discarded") => void
+  onMoveFood: (id: string, slot: FridgeSlot, subPosition: ShelfPosition) => string | null
   announcements: FridgeAnnouncement[]
   fridgeId: string
   communityGoal: CommunityGoal
@@ -29,10 +33,12 @@ function foodState(food: FoodItem): FoodState {
   return { level: "safe", label: `D-${diff}`, order: diff }
 }
 
-export default function FridgeScreen({ onNext, foods, layout, residence, profile, impact, personalLimit, onComplete, announcements, fridgeId, communityGoal }: Props) {
+export default function FridgeScreen({ onNext, foods, layout, residence, profile, impact, personalLimit, onComplete, onMoveFood, announcements, fridgeId, communityGoal }: Props) {
   const [zone, setZone] = useState<FridgeZone>("냉장실")
   const [slotId, setSlotId] = useState("")
   const [pending, setPending] = useState<{ id: string; outcome: "consumed" | "discarded" } | null>(null)
+  const [discardTarget, setDiscardTarget] = useState<FoodItem | null>(null)
+  const [locationTarget, setLocationTarget] = useState<FoodItem | null>(null)
   const slots = getFridgeSlots(layout)
   const selectedLabel = slots.find(slot => slot.id === slotId)?.label
   const zoneFoods = foods.filter(food => food.zone === zone)
@@ -68,14 +74,16 @@ export default function FridgeScreen({ onNext, foods, layout, residence, profile
           <button onClick={() => onNext("myFoods")}>내 음식 전체 보기 →</button>
         </section>
 
+        <button className="home-report-cta" onClick={() => onNext("report")}><span>!</span><div><strong>냉장고에 문제가 있나요?</strong><small>도난·무단 수거, 기한 경과, 악취와 오염을 바로 신고해 주세요</small></div><b>신고하기 ›</b></button>
+
         <section className="student-weekly-goal">
           <div className="goal-sticker">🍽️</div>
-          <div className="grow"><small>{communityGoal.weekLabel} 우리 냉장고 미션</small><strong>방치 음식 {communityGoal.target}개 함께 정리하기</strong><div className="goal-progress"><i style={{ width: `${goalPercent}%` }} /></div><p><b>{communityGoal.completed}개 완료</b> · {Math.max(0, communityGoal.target - communityGoal.completed)}개 남았어요</p></div>
+          <div className="grow"><small>{communityGoal.weekLabel} 우리 냉장고 미션</small><strong>{communityGoal.title ?? "방치 음식 함께 정리하기"} · {communityGoal.target}개</strong><div className="goal-progress"><i style={{ width: `${goalPercent}%` }} /></div><p><b>{communityGoal.completed}개 완료</b> · {Math.max(0, communityGoal.target - communityGoal.completed)}개 남았어요</p></div>
           <span className="goal-percent">{Math.round(goalPercent)}%</span>
         </section>
 
         <section className="fridge-home-card">
-          <div className="dm-section-title"><div><span className="dm-eyebrow">MY FRIDGE</span><h3>{residence.fridgeName}</h3></div><span className="ra-managed-badge">RA 등록 구조</span></div>
+          <div className="dm-section-title"><div><span className="dm-eyebrow">MY FRIDGE</span><h3>{residence.fridgeName}</h3></div><span className="ra-managed-badge">관리자 등록 구조</span></div>
           <div className="fridge-zone-switch">
             <button className={zone === "냉장실" ? "active fridge" : ""} onClick={() => { setZone("냉장실"); setSlotId("") }}><span>❄️</span><strong>냉장실</strong><small>{foods.filter(food => food.zone === "냉장실").length}개</small></button>
             <button className={zone === "냉동고" ? "active freezer" : ""} onClick={() => { setZone("냉동고"); setSlotId("") }}><span>🧊</span><strong>냉동고</strong><small>{foods.filter(food => food.zone === "냉동고").length}개</small></button>
@@ -95,8 +103,8 @@ export default function FridgeScreen({ onNext, foods, layout, residence, profile
               return (
                 <article className={`stored-food-card food-${state.level}`} key={food.id}>
                   {food.photoData ? <img src={food.photoData} alt="" /> : <div className="food-placeholder"><FoodIcon category={food.category} foodId={food.guideId?.replace(/^catalog-/, "")} emoji={food.icon} size="large" /></div>}
-                  <div className="grow"><div className="dm-row gap"><strong>{food.name}</strong><span className="slot-chip">{food.shelfId ?? "미지정"}</span></div><small>{food.kind} · {food.units}칸</small><p>{food.reminderRule}</p><span className={`food-status ${state.level}`}>{state.label}</span></div>
-                  {!active && <div className="food-actions"><button onClick={() => setPending({ id: food.id, outcome: "consumed" })}>먹었어요</button><button className="muted" onClick={() => setPending({ id: food.id, outcome: "discarded" })}>폐기</button></div>}
+                  <div className="grow"><div className="dm-row gap"><strong>{food.name}</strong><span className="slot-chip">{food.shelfId ?? "미지정"} · {shelfPositionLabels[food.subPosition ?? "center"]}</span></div><small>{food.kind} · {food.units}칸</small><p>{food.reminderRule}</p><span className={`food-status ${state.level}`}>{state.label}</span><button className="inline-location-change" onClick={() => setLocationTarget(food)}>↔ 위치 변경</button></div>
+                  {!active && <div className="food-actions"><button onClick={() => setPending({ id: food.id, outcome: "consumed" })}>먹었어요</button><button className="muted" onClick={() => setDiscardTarget(food)}>폐기</button></div>}
                   {active && <div className="food-confirm"><strong>{pending.outcome === "consumed" ? "소비 완료할까요?" : "폐기로 기록할까요?"}</strong><div><button onClick={() => setPending(null)}>취소</button><button onClick={confirmAction}>확인</button></div></div>}
                 </article>
               )
@@ -107,11 +115,13 @@ export default function FridgeScreen({ onNext, foods, layout, residence, profile
       </main>
       <nav className="app-bottom-nav">
         <button className="active"><span>▦</span>냉장고</button>
-        <button onClick={() => onNext("report")}><span>!</span>신고</button>
+        <button className="report-nav" onClick={() => onNext("report")}><span>!</span>신고</button>
         <button className="add" onClick={() => onNext("addFood")}><span>＋</span>등록</button>
         <button onClick={() => onNext("groupBuy")}><span>🛒</span>공동구매</button>
         <button onClick={() => onNext("myFoods")}><span>▣</span>내 음식</button>
       </nav>
+      {discardTarget && <DiscardConfirmDialog food={discardTarget} onCancel={() => setDiscardTarget(null)} onConfirm={() => { onComplete(discardTarget.id, "discarded"); setDiscardTarget(null) }} />}
+      {locationTarget && <FoodLocationDialog food={locationTarget} foods={foods} layout={layout} isOwner={!locationTarget.coOwners?.length || locationTarget.coOwners.includes(profile.room)} onClose={() => setLocationTarget(null)} onMove={onMoveFood} />}
     </div>
   )
 }

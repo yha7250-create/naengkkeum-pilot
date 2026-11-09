@@ -43,7 +43,7 @@ export default function ReportScreen({ onBack, reports, onSubmit, residence, pro
     setDescription("")
     setPhotoName("")
     setPhotoData("")
-    setNotice("신고가 접수되어 RA 운영 화면에 기록되었습니다.")
+    setNotice("신고가 접수되어 관리자 운영 화면에 기록되었습니다.")
   }
 
   return (
@@ -74,10 +74,10 @@ export default function ReportScreen({ onBack, reports, onSubmit, residence, pro
           <label className="dm-label no-margin" htmlFor="report-description">상황 설명</label>
           <textarea id="report-description" value={description} onChange={event => setDescription(event.target.value)} className="dm-input textarea" placeholder="예: 어제 등록한 닭가슴살이 사라졌습니다." />
           <CameraCapture label="현장 사진" value={photoData} onChange={(data, file) => { setPhotoData(data); setPhotoName(file) }} />
-          <label className="dm-check"><input type="checkbox" checked={anonymous} onChange={event => setAnonymous(event.target.checked)} /><span>다른 학생에게는 익명으로 표시</span></label>
+          <label className="dm-check"><input type="checkbox" checked={anonymous} onChange={event => setAnonymous(event.target.checked)} /><span>다른 사용자에게는 익명으로 표시</span></label>
         </section>
 
-        <div className="dm-notice amber"><strong>도난 신고 안내</strong><span>앱은 사건을 기록하고 RA에게 전달합니다. CCTV 열람이나 징계는 기숙사 운영 규정에 따라 RA가 처리합니다.</span></div>
+        <div className="dm-notice amber"><strong>도난 신고 안내</strong><span>앱은 사건을 기록하고 관리자에게 전달합니다. CCTV 열람이나 징계는 기숙사 운영 규정에 따라 관리자가 처리합니다.</span></div>
         {notice && <p className={notice.startsWith("신고") ? "dm-success" : "dm-error"}>{notice}</p>}
         <button className="dm-primary coral" onClick={submit}>신고 접수</button>
 

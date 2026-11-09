@@ -11,7 +11,7 @@ const toggles: { key: keyof NotificationSettings; title: string; sub: string }[]
   { key: "expiryEnabled", title: "소비기한 알림", sub: "3일 전, 1일 전, 당일 등 선택한 시점" },
   { key: "overdueEnabled", title: "기한 경과 알림", sub: "처리할 때까지 매일 한 번 안내" },
   { key: "highRiskEnabled", title: "부패 위험 음식 알림", sub: "배달·개봉 식품을 더 빠르게 확인" },
-  { key: "chatEnabled", title: "채팅 알림", sub: "같은 층 커뮤니티와 RA 공지" },
+  { key: "chatEnabled", title: "채팅 알림", sub: "같은 층 커뮤니티와 관리자 공지" },
   { key: "groupBuyEnabled", title: "공동구매 알림", sub: "모집 마감·입금 확인·수령 안내" },
   { key: "hygieneEnabled", title: "위생 신고 알림", sub: "내 음식이 있는 구역의 악취·오염 제보" },
 ]

@@ -1,5 +1,21 @@
 export type StorageSize = "small" | "medium" | "large"
+export type ShelfPosition = "left" | "center" | "right"
 export type FoodQuantityUnit = "개" | "팩" | "봉" | "병" | "캔" | "단" | "장" | "모" | "g" | "kg" | "mL" | "L"
+
+export const shelfPositionLabels: Record<ShelfPosition, string> = {
+  left: "왼쪽",
+  center: "가운데",
+  right: "오른쪽",
+}
+
+export interface FoodLocationChange {
+  shelfId: string
+  position: ShelfPosition
+  changedBy: string
+  changedAt: string
+  previousShelfId?: string
+  previousPosition?: ShelfPosition
+}
 
 export const foodQuantityUnits: FoodQuantityUnit[] = ["개", "팩", "봉", "병", "캔", "단", "장", "모", "g", "kg", "mL", "L"]
 
@@ -35,6 +51,8 @@ export interface FoodItem {
   photoName?: string
   photoData?: string
   shelfId?: string
+  subPosition?: ShelfPosition
+  locationHistory?: FoodLocationChange[]
   expiry?: string
   openedAt?: string
   openedUseBy?: string
@@ -141,9 +159,11 @@ export interface FridgeAnnouncement {
 
 export interface CommunityGoal {
   fridgeId: string
+  title?: string
   target: number
   completed: number
   weekLabel: string
+  updatedAt?: string
 }
 
 export interface AdminAccessCode {
@@ -249,7 +269,7 @@ export const initialRooms: ChatRoom[] = [
     adminPresent: true,
     participants: 18,
     messages: [
-      { id: "m1", author: "RA 김관리", role: "admin", text: "오늘 22시까지 기한이 지난 음식 확인 부탁드립니다.", sentAt: "18:10" },
+      { id: "m1", author: "관리자 김관리", role: "admin", text: "오늘 22시까지 기한이 지난 음식 확인 부탁드립니다.", sentAt: "18:10" },
       { id: "m2", author: "318호", role: "student", text: "하단 검은 봉투 제 것이 아닙니다. 신고로 남길게요.", sentAt: "18:14" },
     ],
   },
@@ -346,7 +366,7 @@ export const initialAdminCodes: AdminAccessCode[] = [
   {
     id: "code-demo",
     code: "RA-2026",
-    label: "3층 담당 RA",
+    label: "3층 담당 관리자",
     createdAt: "2026-09-18T09:00:00.000Z",
     active: true,
   },

@@ -1,4 +1,4 @@
-import { foodTargetDate, type FoodItem, type FridgeLayout } from "../model"
+import { foodTargetDate, shelfPositionLabels, type FoodItem, type FridgeLayout, type ShelfPosition } from "../model"
 
 export type FridgeZone = "냉장실" | "냉동고"
 type SlotState = "safe" | "warn" | "urgent" | "expired" | "empty"
@@ -61,9 +61,12 @@ export default function DynamicFridge({ layout, zoneView = "냉장실", selected
     const slotFoods = foods.filter(food => food.shelfId === slot.id)
     const state = getSlotState(slotFoods)
     const interactive = Boolean(onSelect)
-    const roomFoods = new Map<string, FoodItem[]>()
-    slotFoods.forEach(food => (food.coOwners?.length ? food.coOwners : ["등록자"]).forEach(room => roomFoods.set(room, [...(roomFoods.get(room) ?? []), food])))
-    const occupants = [...roomFoods.entries()]
+    const positionFoods = (position: ShelfPosition) => slotFoods.filter(food => (food.subPosition ?? "center") === position)
+    const occupantsAt = (position: ShelfPosition) => {
+      const roomFoods = new Map<string, FoodItem[]>()
+      positionFoods(position).forEach(food => (food.coOwners?.length ? food.coOwners : ["등록자"]).forEach(room => roomFoods.set(room, [...(roomFoods.get(room) ?? []), food])))
+      return [...roomFoods.entries()]
+    }
     return (
       <button
         type="button"
@@ -75,10 +78,11 @@ export default function DynamicFridge({ layout, zoneView = "냉장실", selected
       >
         <span className="slot-content shelf-room-content">
           <span className="slot-heading"><small>{compact ? slot.label.replace(/ (선반|문칸|서랍)/, "") : slot.label}</small><b>{slot.id}</b></span>
-          <span className="slot-room-boxes">
-            {occupants.slice(0, 6).map(([room, roomItems]) => { const roomState = getSlotState(roomItems); return <span className={`visual-room-box ${roomState}`} key={room}><strong>{room.replace(/호$/, "")}</strong><small>{roomItems.length}개</small></span> })}
-            {occupants.length === 0 && <span className="slot-empty-label">비어있음</span>}
-            {occupants.length > 6 && <span className="more-rooms">+{occupants.length - 6}</span>}
+          <span className="slot-position-grid">
+            {(Object.keys(shelfPositionLabels) as ShelfPosition[]).map(position => {
+              const occupants = occupantsAt(position)
+              return <span className={`slot-position-cell ${position}`} key={position}><i>{shelfPositionLabels[position]}</i><span className="slot-room-boxes">{occupants.slice(0, 2).map(([room, roomItems]) => { const roomState = getSlotState(roomItems); return <span className={`visual-room-box ${roomState}`} key={room}><strong>{room.replace(/호$/, "")}</strong><small>{roomItems.length}개</small></span> })}{occupants.length === 0 && <span className="slot-empty-label">·</span>}{occupants.length > 2 && <span className="more-rooms">+{occupants.length - 2}</span>}</span></span>
+            })}
           </span>
           {slotFoods.length > 0 && <span className="slot-state-caption">{stateLabel[state]}</span>}
         </span>

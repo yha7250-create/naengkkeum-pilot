@@ -33,7 +33,15 @@ import {
   type FoodActivity,
   type FridgeAnnouncement,
   type CommunityGoal,
+  type ShelfPosition,
 } from "./model"
+
+interface DiscardUndoState {
+  food: FoodItem
+  activityId: string
+  goalFridgeId?: string
+  previousGoalCompleted?: number
+}
 
 function floorNumber(label: string) {
   const value = Number(label.replace(/\D/g, "")) || 1
@@ -84,6 +92,7 @@ export function useDormMealStore() {
   const [selectedAdminFridgeId, setSelectedAdminFridgeId] = useStoredState<string>("dormmeal.selectedAdminFridge.v1", "1-3-b")
   const [announcements, setAnnouncements] = useStoredState<FridgeAnnouncement[]>("dormmeal.announcements.v1", initialAnnouncements)
   const [communityGoals, setCommunityGoals] = useStoredState<Record<string, CommunityGoal>>("dormmeal.communityGoals.v1", initialCommunityGoals)
+  const [lastDiscarded, setLastDiscarded] = useState<DiscardUndoState | null>(null)
   const [adminManagedAreas, setAdminManagedAreas] = useStoredState<AdminManagedArea[]>("dormmeal.adminManagedAreas.v1", [{
     id: "무악학사-1관-3",
     dorm: "무악학사",
@@ -182,6 +191,38 @@ export function useDormMealStore() {
       : food))
   }
 
+  function updateFoodLocation(id: string, shelfId: string, slotLabel: string, zone: "냉장실" | "냉동고", subPosition: ShelfPosition, changedBy: string) {
+    const target = foods.find(food => food.id === id)
+    if (!target) return "이 음식 정보를 찾지 못했습니다."
+    const owners = target.coOwners?.length ? target.coOwners : [profile.room]
+    const sharesOwner = (food: FoodItem) => {
+      const foodOwners = food.coOwners?.length ? food.coOwners : []
+      return foodOwners.some(owner => owners.includes(owner))
+    }
+    const slotUsed = foods.filter(food => food.id !== id && food.fridgeId === target.fridgeId && food.shelfId === shelfId && sharesOwner(food)).reduce((sum, food) => sum + food.units, 0)
+    if (slotUsed + target.units > storagePolicy.perSlotUnits) return `같은 칸은 한 사용자당 ${storagePolicy.perSlotUnits}칸까지만 사용할 수 있어요.`
+    const zoneUsed = foods.filter(food => food.id !== id && food.fridgeId === target.fridgeId && food.zone === zone && sharesOwner(food)).reduce((sum, food) => sum + food.units, 0)
+    const zoneLimit = zone === "냉장실" ? storagePolicy.fridgeUnits : storagePolicy.freezerUnits
+    if (zoneUsed + target.units > zoneLimit) return `${zone} 개인 한도 ${zoneLimit}칸을 초과합니다.`
+    const changedAt = new Date().toISOString()
+    setFoods(current => current.map(food => food.id === id ? {
+      ...food,
+      zone,
+      shelfId,
+      subPosition,
+      position: `${slotLabel} · ${subPosition === "left" ? "왼쪽" : subPosition === "right" ? "오른쪽" : "가운데"}`,
+      locationHistory: [...(food.locationHistory ?? []), {
+        shelfId,
+        position: subPosition,
+        changedBy,
+        changedAt,
+        previousShelfId: food.shelfId,
+        previousPosition: food.subPosition ?? "center",
+      }].slice(-20),
+    } : food))
+    return null
+  }
+
   function removeFood(id: string) {
     const target = foods.find(food => food.id === id)
     setFoods(current => current.filter(food => food.id !== id))
@@ -196,7 +237,8 @@ export function useDormMealStore() {
     const target = foods.find(food => food.id === id)
     if (!target) return
     removeFood(id)
-    setActivities(current => [{ id: uid("activity"), type: outcome, units: target.units, at: new Date().toISOString() }, ...current])
+    const activityId = uid("activity")
+    setActivities(current => [{ id: activityId, type: outcome, units: target.units, at: new Date().toISOString() }, ...current])
     if (outcome === "consumed") {
       const savedKg = Number((target.units * 0.22).toFixed(2))
       setImpact(current => ({
@@ -210,12 +252,40 @@ export function useDormMealStore() {
       setImpact(current => ({ ...current, completedActions: current.completedActions + 1, points: current.points + 2 }))
     }
     const goalFridgeId = target.fridgeId ?? studentFridge?.id
+    const previousGoalCompleted = goalFridgeId ? (communityGoals[goalFridgeId]?.completed ?? 0) : undefined
     if (goalFridgeId) {
       setCommunityGoals(current => {
         const goal = current[goalFridgeId] ?? { fridgeId: goalFridgeId, target: 10, completed: 0, weekLabel: "이번 주" }
         return { ...current, [goalFridgeId]: { ...goal, completed: Math.min(goal.target, goal.completed + 1) } }
       })
     }
+    if (outcome === "discarded") setLastDiscarded({ food: target, activityId, goalFridgeId, previousGoalCompleted })
+  }
+
+  function undoLastDiscard() {
+    if (!lastDiscarded) return false
+    const { food, activityId, goalFridgeId, previousGoalCompleted } = lastDiscarded
+    setFoods(current => current.some(item => item.id === food.id) ? current : [food, ...current])
+    setActivities(current => current.filter(activity => activity.id !== activityId))
+    setFridges(current => current.map(fridge => fridge.id === (food.fridgeId ?? studentFridge?.id)
+      ? { ...fridge, used: Math.min(fridge.capacity, fridge.used + food.units) }
+      : fridge))
+    setImpact(current => ({
+      ...current,
+      completedActions: Math.max(0, current.completedActions - 1),
+      points: Math.max(0, current.points - 2),
+    }))
+    if (goalFridgeId && previousGoalCompleted !== undefined) {
+      setCommunityGoals(current => current[goalFridgeId]
+        ? { ...current, [goalFridgeId]: { ...current[goalFridgeId], completed: previousGoalCompleted } }
+        : current)
+    }
+    setLastDiscarded(null)
+    return true
+  }
+
+  function clearDiscardUndo() {
+    setLastDiscarded(null)
   }
 
   function updateResidence(patch: Partial<ResidenceProfile>) {
@@ -350,7 +420,7 @@ export function useDormMealStore() {
       fridgeId,
       location: `${fridge.building} ${fridge.floor} · ${fridge.label}`,
       message: clean,
-      sender: `RA ${adminSession ?? "관리자"}`,
+      sender: `관리자 ${adminSession ?? "담당자"}`,
       createdAt: new Date().toISOString(),
     }, ...current])
     return true
@@ -363,6 +433,19 @@ export function useDormMealStore() {
       const nextTarget = Math.max(1, Math.min(50, target))
       return { ...current, [fridgeId]: { ...goal, target: nextTarget, completed: Math.min(goal.completed, nextTarget) } }
     })
+  }
+
+  function updateCommunityGoal(fridgeId: string, title: string, target: number, resetCompleted = false) {
+    if (!fridges.some(fridge => fridge.id === fridgeId)) return false
+    const cleanTitle = title.trim().slice(0, 32)
+    if (!cleanTitle) return false
+    const nextTarget = Math.max(1, Math.min(50, Math.round(target)))
+    setCommunityGoals(current => {
+      const goal = current[fridgeId] ?? { fridgeId, target: 10, completed: 0, weekLabel: "이번 주" }
+      const completed = resetCompleted ? 0 : Math.min(goal.completed, nextTarget)
+      return { ...current, [fridgeId]: { ...goal, title: cleanTitle, target: nextTarget, completed, updatedAt: new Date().toISOString() } }
+    })
+    return true
   }
 
   function issueAdminCode(label: string) {
@@ -444,7 +527,7 @@ export function useDormMealStore() {
       ...room,
       messages: [...room.messages, {
         id: uid("message"),
-        author: role === "admin" ? "RA 김관리" : "302호",
+        author: role === "admin" ? "관리자 김관리" : "302호",
         role,
         text: clean,
         sentAt: new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false }),
@@ -514,10 +597,14 @@ export function useDormMealStore() {
     storagePolicy,
     activities,
     quickFoods,
+    lastDiscarded,
     addFood,
     updateFoodQuantity,
+    updateFoodLocation,
     removeFood,
     completeFood,
+    undoLastDiscard,
+    clearDiscardUndo,
     updateResidence,
     updateProfile,
     saveAdminManagedAreas,
@@ -530,6 +617,7 @@ export function useDormMealStore() {
     restoreAdminFridge,
     sendAnnouncement,
     updateCommunityGoalTarget,
+    updateCommunityGoal,
     issueAdminCode,
     verifyAdminCode,
     disableAdminCode,

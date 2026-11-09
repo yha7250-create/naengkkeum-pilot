@@ -26,7 +26,7 @@ export default function AdminStatsScreen({ onNext, activities, foods, fridges }:
   const usage = totalCapacity ? Math.round(totalUsed / totalCapacity * 100) : 0
 
   return <div className="dm-screen admin-stats-screen">
-    <header className="admin-stats-header"><span>RA ADMIN</span><h2>운영 통계</h2><div>{([7, 30, "all"] as Period[]).map(item => <button key={item} className={period === item ? "active" : ""} onClick={() => setPeriod(item)}>{item === "all" ? "전체" : `최근 ${item}일`}</button>)}</div></header>
+    <header className="admin-stats-header"><span>ADMIN</span><h2>운영 통계</h2><div>{([7, 30, "all"] as Period[]).map(item => <button key={item} className={period === item ? "active" : ""} onClick={() => setPeriod(item)}>{item === "all" ? "전체" : `최근 ${item}일`}</button>)}</div></header>
     <main className="stats-content">
       <section className="stats-hero"><div><span>{period === "all" ? "전체 기간" : `최근 ${period}일`} 음식물 쓰레기 감소량</span><strong>{savedKg.toFixed(1)}<small>kg</small></strong><p>먹은 것으로 처리한 공간점수를 환산한 추정치예요. 온실가스 {carbon.toFixed(1)}kg CO₂e 절감에 해당합니다.</p></div><MascotBadge variant="carbon" size="small" /></section>
       <section className="stats-grid"><div><span>음식 등록 수</span><strong>{registered}<small>건</small></strong></div><div><span>소비 완료 수</span><strong className="green">{consumed.length}<small>건</small></strong></div><div><span>폐기 수</span><strong className="red">{discarded.length}<small>건</small></strong></div><div><span>현재 보관 음식</span><strong className="blue">{foods.length}<small>개</small></strong></div></section>

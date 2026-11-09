@@ -95,7 +95,7 @@ export default function AdminDormSelectScreen({ onNext, onBack, residence, manag
         </button>
         <div>
           <div style={{ display: 'flex', gap: 6, marginBottom: 2 }}>
-            <span style={{ background: '#F5C518', borderRadius: 6, padding: '1px 7px', fontFamily: "'Outfit', sans-serif", fontSize: 10, fontWeight: 700, color: '#1A2420' }}>RA</span>
+            <span style={{ background: '#F5C518', borderRadius: 6, padding: '1px 7px', fontFamily: "'Outfit', sans-serif", fontSize: 10, fontWeight: 700, color: '#1A2420' }}>관리</span>
           </div>
           <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 20, fontWeight: 700, color: '#1A2420', margin: 0 }}>관리 구역 설정</h2>
           <p style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 12, color: '#6B8A7A', margin: '2px 0 0' }}>복수 선택 가능 · 관리할 동/층을 선택해주세요</p>

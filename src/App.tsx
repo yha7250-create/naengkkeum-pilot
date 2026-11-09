@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import PhoneFrame from "./components/PhoneFrame"
 import EagleMascot from "./components/EagleMascot"
 import SplashScreen from "./screens/student/SplashScreen"
@@ -53,26 +53,34 @@ function StudentApp({ store }: { store: DormMealStore }) {
   const go = (next: string) => { if (next === "fridge") window.localStorage.setItem("naengkkeum.studentOnboarded", "true"); setHistory(items => [...items, screen]); setScreen(next as StudentScreen) }
   const back = () => setHistory(items => { if (!items.length) return items; setScreen(items[items.length - 1]); return items.slice(0, -1) })
 
+  useEffect(() => {
+    if (!store.lastDiscarded) return
+    const timer = window.setTimeout(store.clearDiscardUndo, 5000)
+    return () => window.clearTimeout(timer)
+  }, [store.lastDiscarded?.activityId])
+
+  const moveFood = (id: string, slot: import("./components/DynamicFridge").FridgeSlot, subPosition: import("./model").ShelfPosition) => store.updateFoodLocation(id, slot.id, slot.label, slot.zone, subPosition, `${store.profile.room} ${store.profile.name}`)
+
   const content = (() => {
     switch (screen) {
       case "splash": return <SplashScreen onNext={go} />
       case "schoolSelect": return <SchoolSelectScreen onNext={go} onBack={back} residence={store.residence} onSave={store.updateResidence} />
       case "dormSelect": return <DormSelectScreen onNext={go} onBack={back} initial={store.residence} onSave={store.updateResidence} fridges={store.fridges} />
       case "profileRegister": return <ProfileRegisterScreen onNext={go} onBack={back} initial={store.profile} onSave={store.updateProfile} />
-      case "fridge": return <FridgeScreen onNext={go} foods={store.studentFoods} layout={store.fridgeLayout} residence={store.studentResidence} profile={store.profile} impact={store.impact} personalLimit={store.personalLimit} onComplete={store.completeFood} announcements={store.announcements} fridgeId={store.studentFridgeId} communityGoal={store.studentCommunityGoal} />
+      case "fridge": return <FridgeScreen onNext={go} foods={store.studentFoods} layout={store.fridgeLayout} residence={store.studentResidence} profile={store.profile} impact={store.impact} personalLimit={store.personalLimit} onComplete={store.completeFood} onMoveFood={moveFood} announcements={store.announcements} fridgeId={store.studentFridgeId} communityGoal={store.studentCommunityGoal} />
       case "impact": return <ImpactScreen onBack={back} foods={store.studentFoods} impact={store.impact} />
       case "report": return <ReportScreen onBack={back} reports={store.reports} onSubmit={store.addReport} residence={store.studentResidence} profile={store.profile} />
       case "community": return <CommunityScreen onBack={back} rooms={store.rooms} onAddRoom={store.addRoom} onSend={store.sendMessage} residence={store.studentResidence} />
       case "menu": return <MenuScreen onBack={back} onNext={go} profile={store.profile} residence={store.studentResidence} />
       case "groupBuy": return <GroupBuyScreen onBack={back} rooms={store.rooms} profile={store.profile} residence={store.studentResidence} onAddRoom={store.addRoom} onJoin={store.joinGroupBuy} onTogglePayment={store.toggleGroupBuyPayment} />
       case "addFood": return <AddFoodScreen onBack={back} onDone={store.addFood} usedUnits={store.usedUnits} usedUnitsByZone={store.usedUnitsByZone} storagePolicy={store.storagePolicy} foods={store.studentFoods} layout={store.fridgeLayout} residence={store.studentResidence} profile={store.profile} quickFoods={store.quickFoods} />
-      case "myFoods": return <MyFoodsScreen onBack={back} onNext={go} foods={store.studentFoods} profile={store.profile} onComplete={store.completeFood} onUpdateQuantity={store.updateFoodQuantity} />
+      case "myFoods": return <MyFoodsScreen onBack={back} onNext={go} foods={store.studentFoods} profile={store.profile} layout={store.fridgeLayout} onComplete={store.completeFood} onUpdateQuantity={store.updateFoodQuantity} onMoveFood={moveFood} />
       case "notificationSettings": return <NotificationSettingsScreen onBack={back} initial={store.notificationSettings} onSave={store.saveNotificationSettings} />
       case "profileEdit": return <ProfileEditScreen onBack={back} profile={store.profile} residence={store.studentResidence} fridges={store.fridges} activeFoodCount={store.ownedFoods.length} onSaveProfile={store.updateProfile} onSaveResidence={store.updateResidence} />
     }
   })()
 
-  return <PhoneFrame statusLabel={`학생앱 · ${studentLabels[screen]}`}>{content}</PhoneFrame>
+  return <PhoneFrame statusLabel={`사용자용 · ${studentLabels[screen]}`}><>{content}{store.lastDiscarded && <div className="undo-toast" role="status"><div><strong>‘{store.lastDiscarded.food.name}’을 폐기 처리했어요</strong><small>5초 동안 되돌릴 수 있습니다</small></div><button type="button" onClick={store.undoLastDiscard}>되돌리기</button></div>}</></PhoneFrame>
 }
 
 function AdminApp({ store }: { store: DormMealStore }) {
@@ -90,7 +98,7 @@ function AdminApp({ store }: { store: DormMealStore }) {
   const back = () => setHistory(items => { if (!items.length) return items; setScreen(items[items.length - 1]); return items.slice(0, -1) })
   const login = (code: string, name: string) => { const ok = store.verifyAdminCode(code, name); if (ok) setAuthenticated(true); return ok }
   const logout = () => {
-    if (!window.confirm("RA 관리 화면에서 로그아웃할까요? 같은 RA 이름과 기존 코드로 다시 로그인할 수 있습니다.")) return
+    if (!window.confirm("관리자 화면에서 로그아웃할까요? 같은 관리자 이름과 기존 코드로 다시 로그인할 수 있습니다.")) return
     store.logoutAdmin()
     setAuthenticated(false)
     setHistory([])
@@ -106,7 +114,7 @@ function AdminApp({ store }: { store: DormMealStore }) {
       case "adminDormSelect": return <AdminDormSelectScreen onNext={go} onBack={back} residence={store.residence} managedAreas={store.adminManagedAreas} onSave={store.updateResidence} onSaveAreas={store.saveAdminManagedAreas} />
       case "adminFridgeSelect": return <AdminFridgeSelectScreen fridges={store.adminFridges} archivedFridges={store.archivedAdminFridges} managedAreas={store.adminManagedAreas} selectedId={store.selectedAdminFridgeId} onSelect={store.selectAdminFridge} onAdd={store.addAdminFridge} onArchive={store.archiveAdminFridge} onRestore={store.restoreAdminFridge} onBack={back} onNext={go} />
       case "adminFridgeConfig": return <FridgeConfigScreen adminMode fridgeId={store.activeAdminFridge?.id} onSaveName={store.renameAdminFridge} onNext={() => go("adminDashboard")} onBack={back} initial={store.adminFridgeLayout} residence={store.adminResidence} onSave={store.saveAdminFridgeLayout} />
-      case "adminDashboard": return <AdminDashboardScreen onNext={go} foods={store.adminFoods} fridges={store.adminFridges} reports={store.reports} rooms={store.rooms} residence={store.adminResidence} adminName={store.adminSession ?? "RA"} storagePolicy={store.storagePolicy} activeFridge={store.activeAdminFridge} communityGoal={store.adminCommunityGoal} onUpdateGoal={store.updateCommunityGoalTarget} />
+      case "adminDashboard": return <AdminDashboardScreen onNext={go} foods={store.adminFoods} fridges={store.adminFridges} reports={store.reports} rooms={store.rooms} residence={store.adminResidence} adminName={store.adminSession ?? "관리자"} storagePolicy={store.storagePolicy} activeFridge={store.activeAdminFridge} communityGoal={store.adminCommunityGoal} onUpdateGoal={store.updateCommunityGoal} />
       case "adminFridge": return <AdminFridgeOverviewScreen onNext={go} foods={store.adminFoods} layout={store.adminFridgeLayout} residence={store.adminResidence} profile={store.profile} />
       case "adminOperations": return <AdminOperationsScreen onBack={back} onNext={go} fridges={store.adminFridges} reports={store.reports} onUpdateStatus={store.updateReportStatus} announcements={store.announcements} onSendAnnouncement={store.sendAnnouncement} />
       case "adminStats": return <AdminStatsScreen onNext={go} activities={store.activities} foods={store.adminFoods} fridges={store.adminFridges} />
@@ -126,11 +134,11 @@ export default function App() {
     <div className="showcase-shell">
       <header className="showcase-header">
         <div className="brand-lockup"><div className="brand-icon"><EagleMascot size={44} /></div><div><h1>냉큼</h1><p>함께 쓰는 냉장고를 더 깨끗하고 공정하게</p></div></div>
-        <div className="view-switcher">{([["student", "학생으로 시작"], ["admin", "RA 로그인"]] as const).map(([tab, label]) => <button key={tab} className={activeTab === tab ? "active" : ""} onClick={() => setActiveTab(tab)}>{label}</button>)}</div>
+        <div className="view-switcher">{([["student", "사용자로 시작"], ["admin", "관리자 로그인"]] as const).map(([tab, label]) => <button key={tab} className={activeTab === tab ? "active" : ""} onClick={() => setActiveTab(tab)}>{label}</button>)}</div>
       </header>
       <main className="showcase-content">
-        {activeTab === "student" && <section className="app-preview"><div className="preview-label">🎓 학생용 앱</div><StudentApp store={store} /></section>}
-        {activeTab === "admin" && <section className="app-preview"><div className="preview-label admin">⭐ RA 관리자용 앱</div><AdminApp store={store} /></section>}
+        {activeTab === "student" && <section className="app-preview"><div className="preview-label">👤 사용자용 앱</div><StudentApp store={store} /></section>}
+        {activeTab === "admin" && <section className="app-preview"><div className="preview-label admin">⭐ 관리자용 앱</div><AdminApp store={store} /></section>}
       </main>
     </div>
   )}</PilotGate>

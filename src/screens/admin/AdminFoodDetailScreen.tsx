@@ -48,7 +48,7 @@ export default function AdminFoodDetailScreen({ onBack, foods, residence, onRemo
     <header className="dm-header admin-header">
       <button className="dm-icon-button dark" onClick={onBack} aria-label="뒤로 가기">‹</button>
       <div><p>{residence.dorm} {residence.building} {residence.floor}층 · {residence.fridgeName}</p><h2>실제 등록 음식</h2></div>
-      <span className="dm-step admin">RA</span>
+      <span className="dm-step admin">관리</span>
     </header>
     <main className="dm-stack">
       <section className="my-food-summary">
@@ -77,7 +77,7 @@ export default function AdminFoodDetailScreen({ onBack, foods, residence, onRemo
         })}</div>}
       </section>)}
       {byRoom.length === 0 && <div className="dm-empty">이 냉장고에 실제로 등록된 음식이 없습니다.</div>}
-      <p className="dm-help">예시 음식은 표시하지 않습니다. 학생이 이 냉장고를 선택해 등록한 음식만 나타납니다.</p>
+      <p className="dm-help">예시 음식은 표시하지 않습니다. 사용자가 이 냉장고를 선택해 등록한 음식만 나타납니다.</p>
     </main>
   </div>
 }

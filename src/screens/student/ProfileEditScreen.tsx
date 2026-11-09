@@ -58,7 +58,7 @@ export default function ProfileEditScreen({ onBack, profile, residence, fridges,
     const roomNumber = form.room.trim().replace(/호$/, "")
     if (!form.name.trim()) return setError("이름 또는 닉네임을 입력해 주세요.")
     if (!/^\d{3,4}$/.test(roomNumber)) return setError("호수는 302처럼 숫자 3~4자리로 입력해 주세요.")
-    if (!selectedFridge) return setError("이 위치에는 RA가 등록한 냉장고가 없습니다.")
+    if (!selectedFridge) return setError("이 위치에는 관리자가 등록한 냉장고가 없습니다.")
     if (storageChanged && activeFoodCount > 0) return setError(`등록된 음식 ${activeFoodCount}개를 먼저 소비 또는 폐기 처리한 뒤 거주 정보를 변경해 주세요.`)
 
     onSaveProfile({ ...form, name: form.name.trim(), studentId: form.studentId.trim(), phone: form.phone.trim(), room: `${roomNumber}호` })
@@ -81,7 +81,7 @@ export default function ProfileEditScreen({ onBack, profile, residence, fridges,
         <section><label className="dm-label">기숙사</label><div className="select-cards">{dorms.map(item => <button type="button" key={item} className={dorm === item ? "active" : ""} onClick={() => chooseDorm(item)}>{item}</button>)}</div></section>
         <section><label className="dm-label">동·관</label><div className="select-cards">{buildings[dorm].map(item => <button type="button" key={item} className={building === item ? "active" : ""} onClick={() => { setBuilding(item); setError("") }}>{item}</button>)}</div></section>
         <section><label className="dm-label">층</label><select className="dm-input" value={floor} onChange={event => { setFloor(Number(event.target.value)); setError("") }}>{Array.from({ length: 13 }, (_, index) => index + 1).map(item => <option key={item} value={item}>{item}층</option>)}</select></section>
-        <section><label className="dm-label">RA가 등록한 냉장고</label>{availableFridges.length ? <select className="dm-input" value={selectedFridge?.id ?? ""} onChange={event => { setFridgeId(event.target.value); setError("") }}>{availableFridges.map(fridge => <option key={fridge.id} value={fridge.id}>{fridge.label}</option>)}</select> : <div className="dm-notice"><strong>등록된 냉장고 없음</strong><span>담당 RA가 냉장고를 등록한 뒤 선택할 수 있습니다.</span></div>}</section>
+        <section><label className="dm-label">관리자가 등록한 냉장고</label>{availableFridges.length ? <select className="dm-input" value={selectedFridge?.id ?? ""} onChange={event => { setFridgeId(event.target.value); setError("") }}>{availableFridges.map(fridge => <option key={fridge.id} value={fridge.id}>{fridge.label}</option>)}</select> : <div className="dm-notice"><strong>등록된 냉장고 없음</strong><span>담당 관리자가 냉장고를 등록한 뒤 선택할 수 있습니다.</span></div>}</section>
 
         {storageChanged && activeFoodCount > 0 && <div className="profile-food-warning"><strong>⚠️ 거주지 변경 잠김</strong><span>현재 내 음식 {activeFoodCount}개가 기존 냉장고에 연결되어 있어요.</span></div>}
         {error && <p className="dm-error">{error}</p>}

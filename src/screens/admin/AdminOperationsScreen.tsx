@@ -37,8 +37,8 @@ export default function AdminOperationsScreen({ onBack, onNext, fridges, reports
     <div className="dm-screen">
       <header className="dm-header admin-header">
         <button className="dm-icon-button dark" onClick={onBack} aria-label="뒤로 가기">‹</button>
-        <div><p>RA 운영 화면 · 실시간 우선순위</p><h2>정리 운영센터</h2></div>
-        <span className="dm-step admin">RA</span>
+        <div><p>관리자 운영 화면 · 실시간 우선순위</p><h2>정리 운영센터</h2></div>
+        <span className="dm-step admin">관리</span>
       </header>
 
       <main className="dm-stack">
@@ -88,7 +88,7 @@ export default function AdminOperationsScreen({ onBack, onNext, fridges, reports
         </section>
       </main>
       <nav className="admin-bottom-nav five"><button onClick={() => onNext("adminDashboard")}><span>⌂</span>대시보드</button><button onClick={() => onNext("adminFridge")}><span>▦</span>현황</button><button className="active"><span>!</span>운영</button><button onClick={() => onNext("adminStats")}><span>↗</span>통계</button><button onClick={() => onNext("adminMenu")}><span>☰</span>메뉴</button></nav>
-      {noticeTarget && <div className="notice-modal-backdrop" onClick={() => setNoticeTarget(null)}><section className="notice-modal" role="dialog" aria-modal="true" aria-label="냉장고 공지 작성" onClick={event => event.stopPropagation()}><header><div><small>RA 공지 발송</small><h3>{noticeTarget.building} {noticeTarget.floor} · {noticeTarget.label}</h3></div><button onClick={() => setNoticeTarget(null)} aria-label="닫기">×</button></header><label>공지 내용<textarea value={noticeText} onChange={event => setNoticeText(event.target.value)} maxLength={180} rows={5} /></label><p>{noticeText.length}/180자 · 해당 냉장고 학생 화면에 바로 표시됩니다.</p>{sentMessage && <div className="notice-sent-success">✓ {sentMessage}</div>}<footer><button onClick={() => setNoticeTarget(null)}>취소</button><button onClick={sendNotice} disabled={!noticeText.trim()}>공지 발송하기</button></footer></section></div>}
+      {noticeTarget && <div className="notice-modal-backdrop" onClick={() => setNoticeTarget(null)}><section className="notice-modal" role="dialog" aria-modal="true" aria-label="냉장고 공지 작성" onClick={event => event.stopPropagation()}><header><div><small>관리자 공지 발송</small><h3>{noticeTarget.building} {noticeTarget.floor} · {noticeTarget.label}</h3></div><button onClick={() => setNoticeTarget(null)} aria-label="닫기">×</button></header><label>공지 내용<textarea value={noticeText} onChange={event => setNoticeText(event.target.value)} maxLength={180} rows={5} /></label><p>{noticeText.length}/180자 · 해당 냉장고 사용자 화면에 바로 표시됩니다.</p>{sentMessage && <div className="notice-sent-success">✓ {sentMessage}</div>}<footer><button onClick={() => setNoticeTarget(null)}>취소</button><button onClick={sendNotice} disabled={!noticeText.trim()}>공지 발송하기</button></footer></section></div>}
     </div>
   )
 }

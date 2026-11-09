@@ -46,7 +46,7 @@ export default function DormSelectScreen({ onNext, onBack, initial, onSave, frid
   }
 
   function next() {
-    if (!selectedFridge) return setError("이 위치에는 RA가 등록한 냉장고가 없습니다. 담당 RA에게 먼저 등록을 요청해 주세요.")
+    if (!selectedFridge) return setError("이 위치에는 관리자가 등록한 냉장고가 없습니다. 담당 관리자에게 먼저 등록을 요청해 주세요.")
     onSave?.({ school: "연세대학교", dorm, building, floor, fridgeId: selectedFridge.id, fridgeName: selectedFridge.label })
     onNext("profileRegister")
   }
@@ -58,8 +58,8 @@ export default function DormSelectScreen({ onNext, onBack, initial, onSave, frid
         <section><label className="dm-label">기숙사</label><div className="select-cards">{dorms.map(item => <button key={item} className={dorm === item ? "active" : ""} onClick={() => chooseDorm(item)}>{item}</button>)}</div></section>
         <section><label className="dm-label">동·관</label><div className="select-cards">{buildings[dorm].map(item => <button key={item} className={building === item ? "active" : ""} onClick={() => setBuilding(item)}>{item}</button>)}</div></section>
         <section><label className="dm-label">층</label><select className="dm-input" value={floor} onChange={event => setFloor(Number(event.target.value))}>{Array.from({ length: 13 }, (_, index) => index + 1).map(item => <option key={item} value={item}>{item}층</option>)}</select></section>
-        <section><label className="dm-label">RA가 등록한 냉장고</label>{availableFridges.length ? <select className="dm-input" value={selectedFridge?.id ?? ""} onChange={event => { setFridgeId(event.target.value); setError("") }}>{availableFridges.map(fridge => <option key={fridge.id} value={fridge.id}>{fridge.label}</option>)}</select> : <div className="dm-notice"><strong>등록된 냉장고 없음</strong><span>학생은 냉장고 이름이나 구조를 직접 만들 수 없습니다.</span></div>}</section>
-        <div className="location-summary"><span>선택된 위치</span><strong>연세대학교 · {dorm} {building} {floor}층</strong><small>{selectedFridge?.label ?? "RA 등록 대기"}</small></div>
+        <section><label className="dm-label">관리자가 등록한 냉장고</label>{availableFridges.length ? <select className="dm-input" value={selectedFridge?.id ?? ""} onChange={event => { setFridgeId(event.target.value); setError("") }}>{availableFridges.map(fridge => <option key={fridge.id} value={fridge.id}>{fridge.label}</option>)}</select> : <div className="dm-notice"><strong>등록된 냉장고 없음</strong><span>사용자는 냉장고 이름이나 구조를 직접 만들 수 없습니다.</span></div>}</section>
+        <div className="location-summary"><span>선택된 위치</span><strong>연세대학교 · {dorm} {building} {floor}층</strong><small>{selectedFridge?.label ?? "관리자 등록 대기"}</small></div>
         {error && <p className="dm-error">{error}</p>}
         <button className="dm-primary" onClick={next} disabled={!selectedFridge}>이 위치 저장하고 다음</button>
       </main>

@@ -1,15 +1,20 @@
 import { useMemo, useState } from "react"
 import { getFoodGuide } from "../../foodGuide"
+import DiscardConfirmDialog from "../../components/DiscardConfirmDialog"
+import FoodLocationDialog from "../../components/FoodLocationDialog"
 import FoodIcon from "../../components/FoodIcon"
-import { foodTargetDate, formatFoodQuantity, quantityStepFor, type FoodItem, type UserProfile } from "../../model"
+import { foodTargetDate, formatFoodQuantity, quantityStepFor, shelfPositionLabels, type FoodItem, type FridgeLayout, type ShelfPosition, type UserProfile } from "../../model"
+import type { FridgeSlot } from "../../components/DynamicFridge"
 
 interface Props {
   onBack: () => void
   onNext: (screen: string) => void
   foods: FoodItem[]
   profile: UserProfile
+  layout: FridgeLayout
   onComplete: (id: string, outcome: "consumed" | "discarded") => void
   onUpdateQuantity: (id: string, quantity: number) => void
+  onMoveFood: (id: string, slot: FridgeSlot, subPosition: ShelfPosition) => string | null
 }
 
 function daysLeft(food: FoodItem) {
@@ -17,8 +22,10 @@ function daysLeft(food: FoodItem) {
   return Math.ceil((target.getTime() - Date.now()) / 86400000)
 }
 
-export default function MyFoodsScreen({ onBack, onNext, foods, profile, onComplete, onUpdateQuantity }: Props) {
+export default function MyFoodsScreen({ onBack, onNext, foods, profile, layout, onComplete, onUpdateQuantity, onMoveFood }: Props) {
   const [zone, setZone] = useState<"전체" | "냉장실" | "냉동고">("전체")
+  const [discardTarget, setDiscardTarget] = useState<FoodItem | null>(null)
+  const [locationTarget, setLocationTarget] = useState<FoodItem | null>(null)
   const myFoods = useMemo(() => foods.filter(food => !food.coOwners?.length || food.coOwners.includes(profile.room)), [foods, profile.room])
   const visible = myFoods.filter(food => zone === "전체" || food.zone === zone).sort((a, b) => daysLeft(a) - daysLeft(b))
   const shared = myFoods.filter(food => food.registrationMode === "shared").length
@@ -34,9 +41,11 @@ export default function MyFoodsScreen({ onBack, onNext, foods, profile, onComple
         const guide = getFoodGuide(food.kind, food.category)
         return <article key={food.id} className="my-food-card">
           <div className="my-food-photo">{food.photoData ? <img src={food.photoData} alt="" /> : <FoodIcon category={food.category} foodId={food.guideId?.replace(/^catalog-/, "")} emoji={food.icon} size="large" />}<b className={remaining <= 2 ? "urgent" : ""}>{remaining < 0 ? `${Math.abs(remaining)}일 지남` : remaining === 0 ? "오늘" : `D-${remaining}`}</b></div>
-          <div className="my-food-body"><div className="dm-row between"><strong>{food.name}</strong><span className="slot-chip">{food.shelfId}</span></div><p>{food.category} · {food.position} · {food.units}칸</p><div className="my-food-quantity"><span>수량</span><button type="button" onClick={() => onUpdateQuantity(food.id, (food.quantity ?? 1) - quantityStepFor(food.quantityUnit ?? "개"))} aria-label={`${food.name} 수량 줄이기`}>−</button><strong>{formatFoodQuantity(food.quantity, food.quantityUnit)}</strong><button type="button" onClick={() => onUpdateQuantity(food.id, (food.quantity ?? 1) + quantityStepFor(food.quantityUnit ?? "개"))} aria-label={`${food.name} 수량 늘리기`}>+</button></div>{food.registrationMode === "shared" && <div className="shared-owners">공동 소유 · {food.coOwners?.join(", ")}</div>}<div className="food-date-lines">{food.expiry && <small>소비기한 · {food.expiry}</small>}{food.openedAt && <small>개봉일 · {food.openedAt}</small>}{food.openedUseBy && <small className="opened">개봉 후 상태 확인 · {food.openedUseBy}</small>}{!food.expiry && !food.openedUseBy && <small>{food.reminderRule}</small>}</div>{food.memo && <p className="food-memo-preview">✎ {food.memo}</p>}<details><summary>보관 안내 보기</summary><p><b>보관</b> {guide.storage}</p><p><b>주의</b> {guide.caution}</p></details><div className="my-food-actions"><button onClick={() => onComplete(food.id, "consumed")}>먹었어요</button><button onClick={() => onComplete(food.id, "discarded")}>폐기</button></div></div>
+          <div className="my-food-body"><div className="dm-row between"><strong>{food.name}</strong><span className="slot-chip">{food.shelfId} · {shelfPositionLabels[food.subPosition ?? "center"]}</span></div><p>{food.category} · {food.position} · {food.units}칸</p><button className="my-food-location-button" onClick={() => setLocationTarget(food)}>↔ 보관 위치 변경</button><div className="my-food-quantity"><span>수량</span><button type="button" onClick={() => onUpdateQuantity(food.id, (food.quantity ?? 1) - quantityStepFor(food.quantityUnit ?? "개"))} aria-label={`${food.name} 수량 줄이기`}>−</button><strong>{formatFoodQuantity(food.quantity, food.quantityUnit)}</strong><button type="button" onClick={() => onUpdateQuantity(food.id, (food.quantity ?? 1) + quantityStepFor(food.quantityUnit ?? "개"))} aria-label={`${food.name} 수량 늘리기`}>+</button></div>{food.registrationMode === "shared" && <div className="shared-owners">공동 소유 · {food.coOwners?.join(", ")}</div>}{food.locationHistory?.length ? <div className="location-history-note">최근 이동 · {food.locationHistory.at(-1)?.changedBy} · {new Date(food.locationHistory.at(-1)!.changedAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</div> : null}<div className="food-date-lines">{food.expiry && <small>소비기한 · {food.expiry}</small>}{food.openedAt && <small>개봉일 · {food.openedAt}</small>}{food.openedUseBy && <small className="opened">개봉 후 상태 확인 · {food.openedUseBy}</small>}{!food.expiry && !food.openedUseBy && <small>{food.reminderRule}</small>}</div>{food.memo && <p className="food-memo-preview">✎ {food.memo}</p>}<details><summary>보관 안내 보기</summary><p><b>보관</b> {guide.storage}</p><p><b>주의</b> {guide.caution}</p></details><div className="my-food-actions"><button onClick={() => onComplete(food.id, "consumed")}>먹었어요</button><button onClick={() => setDiscardTarget(food)}>폐기</button></div></div>
         </article>
       })}{visible.length === 0 && <div className="dm-empty">이 조건에 맞는 음식이 없습니다.</div>}</section>
     </main>
+    {discardTarget && <DiscardConfirmDialog food={discardTarget} onCancel={() => setDiscardTarget(null)} onConfirm={() => { onComplete(discardTarget.id, "discarded"); setDiscardTarget(null) }} />}
+    {locationTarget && <FoodLocationDialog food={locationTarget} foods={foods} layout={layout} isOwner onClose={() => setLocationTarget(null)} onMove={onMoveFood} />}
   </div>
 }

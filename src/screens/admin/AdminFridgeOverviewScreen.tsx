@@ -140,7 +140,7 @@ export default function AdminFridgeOverviewScreen({ onNext, foods, layout, resid
           {(["safe", "warn", "urgent", "expired"] as StorageStatus[]).map(status => <span key={status}><i className={status} />{statusText[status]}</span>)}
           <span><i className="empty" />비어있음</span>
         </div>
-        <p className="inventory-guide">호수 상자를 누르면 해당 학생이 보관한 음식의 상세정보가 열립니다.</p>
+        <p className="inventory-guide">호수 상자를 누르면 해당 사용자가 보관한 음식의 상세정보가 열립니다.</p>
         <section className={`admin-storage-map ${zone === "냉동실" ? "freezer-map" : ""}`}>
           {zone === "냉동실" ? <>{doorColumn}{mainColumn}</> : <>{mainColumn}{doorColumn}</>}
         </section>

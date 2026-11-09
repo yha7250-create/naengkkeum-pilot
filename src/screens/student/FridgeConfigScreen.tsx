@@ -42,12 +42,12 @@ export default function FridgeConfigScreen({ initial, residence, onBack, onSave,
     <div className={`dm-screen ${adminMode ? "ra-config-screen" : ""}`}>
       <header className="dm-header admin-header">
         <button className="dm-icon-button dark" onClick={onBack} aria-label="뒤로 가기">‹</button>
-        <div><p>{residence.dorm} {residence.building} {residence.floor}층 · RA 전용</p><h2>냉장고 구조 등록</h2></div>
-        <span className="dm-step admin">RA ONLY</span>
+        <div><p>{residence.dorm} {residence.building} {residence.floor}층 · 관리자 전용</p><h2>냉장고 구조 등록</h2></div>
+        <span className="dm-step admin">ADMIN ONLY</span>
       </header>
       <main className="dm-stack">
-        <div className="dm-notice ra-only-notice"><strong>승인된 RA만 구조를 등록·수정할 수 있어요</strong><span>실제 냉장고를 확인해 선반·냉동실·서랍·도어 수를 맞춰주세요. 학생은 등록된 구조에서 위치만 선택합니다.</span></div>
-        {adminMode && <section className="fridge-name-editor"><div><span className="dm-eyebrow">FRIDGE NAME</span><h3>냉장고 이름</h3><p>학생 화면과 공지에 표시되는 이름이에요.</p></div><input className="dm-input large" value={fridgeName} onChange={event => { setFridgeName(event.target.value); setError("") }} placeholder="예: 중앙 냉장고 A" maxLength={24} /></section>}
+        <div className="dm-notice ra-only-notice"><strong>승인된 관리자만 구조를 등록·수정할 수 있어요</strong><span>실제 냉장고를 확인해 선반·냉동실·서랍·도어 수를 맞춰주세요. 사용자는 등록된 구조에서 위치만 선택합니다.</span></div>
+        {adminMode && <section className="fridge-name-editor"><div><span className="dm-eyebrow">FRIDGE NAME</span><h3>냉장고 이름</h3><p>사용자 화면과 공지에 표시되는 이름이에요.</p></div><input className="dm-input large" value={fridgeName} onChange={event => { setFridgeName(event.target.value); setError("") }} placeholder="예: 중앙 냉장고 A" maxLength={24} /></section>}
         <div className="fridge-zone-switch config-zone-switch">
           <button className={zone === "냉장실" ? "active fridge" : ""} onClick={() => setZone("냉장실")}><span>❄️</span><strong>냉장실</strong><small>{layout.fridgeShelves + layout.drawers + layout.doorPockets}칸</small></button>
           <button className={zone === "냉동고" ? "active freezer" : ""} onClick={() => setZone("냉동고")}><span>🧊</span><strong>냉동고</strong><small>{layout.freezerShelves + (layout.freezerDoorPockets ?? 0)}칸</small></button>
@@ -62,9 +62,9 @@ export default function FridgeConfigScreen({ initial, residence, onBack, onSave,
           ))}
         </section>
         <section className="fridge-preview-card">
-          <div className="dm-section-title"><div><span className="dm-eyebrow">LIVE PREVIEW</span><h3>공용 냉장고 도식</h3></div><span className="dm-badge green">RA 설정</span></div>
+          <div className="dm-section-title"><div><span className="dm-eyebrow">LIVE PREVIEW</span><h3>공용 냉장고 도식</h3></div><span className="dm-badge green">관리자 설정</span></div>
           <DynamicFridge layout={layout} zoneView={zone} />
-          <p>저장하면 학생 화면에도 같은 구조가 읽기 전용으로 표시됩니다. 냉장실과 냉동고를 각각 확인해 주세요.</p>
+          <p>저장하면 사용자 화면에도 같은 구조가 읽기 전용으로 표시됩니다. 냉장실과 냉동고를 각각 확인해 주세요.</p>
         </section>
         {error && <p className="dm-error">{error}</p>}
         <button className="dm-primary" onClick={save}>{adminMode ? "이름과 구조 저장하기" : "이 구조로 저장하기"}</button>
