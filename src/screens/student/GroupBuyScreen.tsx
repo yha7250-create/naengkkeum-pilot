@@ -20,12 +20,14 @@ export default function GroupBuyScreen({ onBack, rooms, profile, residence, onAd
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState({ title: "", category: "유제품", max: "4", deadline: "", unitPrice: "", bankName: "", accountNumber: "", accountHolder: "", pickupPlace: "" })
   const [error, setError] = useState("")
-  const visible = useMemo(() => rooms.filter(room => room.type === "groupbuy" && (category === "전체" || room.category === category)), [rooms, category])
+  const visible = useMemo(() => rooms.filter(room => room.type === "groupbuy"
+    && (!room.fridgeId || !residence.fridgeId || room.fridgeId === residence.fridgeId)
+    && (category === "전체" || room.category === category)), [rooms, category, residence.fridgeId])
 
   function createRoom() {
     if (!form.title.trim() || !form.accountNumber.trim() || !form.accountHolder.trim()) return setError("제목, 계좌번호, 예금주를 입력해 주세요.")
     const room: ChatRoom = {
-      id: uid("groupbuy"), type: "groupbuy", title: form.title.trim(),
+      id: uid("groupbuy"), fridgeId: residence.fridgeId, type: "groupbuy", title: form.title.trim(),
       location: `${residence.dorm} ${residence.building} ${residence.floor}층`, adminPresent: true, participants: 1,
       pickupPlace: form.pickupPlace.trim() || `${residence.building} 1층 로비`,
       settlement: form.unitPrice ? `1인 ${Number(form.unitPrice).toLocaleString()}원 · 계좌이체` : "금액 협의",

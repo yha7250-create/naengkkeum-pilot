@@ -123,6 +123,7 @@ export function useDormMealStore() {
     building: activeAdminFridge.building,
     floor: floorNumber(activeAdminFridge.floor),
     fridgeName: activeAdminFridge.label,
+    fridgeId: activeAdminFridge.id,
   } : residence
   const studentLocationFridges = fridges.filter(fridge => !fridge.archivedAt
     && (fridge.dorm ?? initialResidence.dorm) === residence.dorm

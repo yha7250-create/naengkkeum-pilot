@@ -201,6 +201,8 @@ export interface ChatMessage {
 
 export interface ChatRoom {
   id: string
+  /** 대화방이 속한 공용 냉장고. 기존 저장 데이터와의 호환을 위해 선택값입니다. */
+  fridgeId?: string
   type: "care" | "groupbuy"
   title: string
   location: string

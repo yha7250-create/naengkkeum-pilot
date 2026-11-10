@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { uid, type ChatRoom, type ResidenceProfile } from "../../model"
+import { uid, type ChatRoom, type FridgeMetric, type ResidenceProfile } from "../../model"
 
 interface Props {
   onBack: () => void
@@ -9,14 +9,26 @@ interface Props {
   residence: ResidenceProfile
   adminMode?: boolean
   adminName?: string
+  fridges?: FridgeMetric[]
+  selectedFridgeId?: string
+  onSelectFridge?: (id: string) => void
 }
 
-export default function CommunityScreen({ onBack, rooms, onAddRoom, onSend, residence, adminMode = false, adminName = "관리자" }: Props) {
+export default function CommunityScreen({ onBack, rooms, onAddRoom, onSend, residence, adminMode = false, adminName = "관리자", fridges = [], selectedFridgeId, onSelectFridge }: Props) {
   const adminLabel = adminName.startsWith("관리자") ? adminName : `관리자 ${adminName}`
   const [tab, setTab] = useState<"care" | "groupbuy">("care")
-  const filtered = useMemo(() => rooms.filter(room => room.type === tab), [rooms, tab])
+  const activeFridgeId = adminMode ? selectedFridgeId : residence.fridgeId
+  const selectedFridge = fridges.find(fridge => fridge.id === activeFridgeId)
+  const scopedRooms = useMemo(() => rooms.filter(room => {
+    if (!activeFridgeId) return true
+    if (room.fridgeId) return room.fridgeId === activeFridgeId
+    if (!adminMode) return room.location.includes(residence.building) && room.location.includes(`${residence.floor}층`)
+    const legacyOwner = fridges.find(fridge => room.location.includes(fridge.building) && room.location.includes(fridge.floor))
+    return legacyOwner?.id === activeFridgeId
+  }), [rooms, activeFridgeId, adminMode, residence.building, residence.floor, fridges])
+  const filtered = useMemo(() => scopedRooms.filter(room => room.type === tab), [scopedRooms, tab])
   const [roomId, setRoomId] = useState(filtered[0]?.id ?? "")
-  const active = rooms.find(room => room.id === roomId && room.type === tab) ?? filtered[0]
+  const active = scopedRooms.find(room => room.id === roomId && room.type === tab) ?? filtered[0]
   const [message, setMessage] = useState("")
   const [creating, setCreating] = useState(false)
   const [title, setTitle] = useState("")
@@ -25,14 +37,21 @@ export default function CommunityScreen({ onBack, rooms, onAddRoom, onSend, resi
 
   function changeTab(next: "care" | "groupbuy") {
     setTab(next)
-    setRoomId(rooms.find(room => room.type === next)?.id ?? "")
+    setRoomId(scopedRooms.find(room => room.type === next)?.id ?? "")
+    setCreating(false)
+  }
+
+  function selectFridge(id: string) {
+    onSelectFridge?.(id)
+    setRoomId("")
     setCreating(false)
   }
 
   function createRoom() {
     if (!title.trim()) return
     const room: ChatRoom = {
-      id: uid(tab), type: tab, title: title.trim(), location: `${residence.dorm} ${residence.building} ${residence.floor}층`,
+      id: uid(tab), fridgeId: activeFridgeId, type: tab, title: title.trim(),
+      location: selectedFridge ? `${selectedFridge.dorm ?? residence.dorm} ${selectedFridge.building} ${selectedFridge.floor} · ${selectedFridge.label}` : `${residence.dorm} ${residence.building} ${residence.floor}층 · ${residence.fridgeName}`,
       adminPresent: true, participants: 1,
       pickupPlace: tab === "groupbuy" ? pickup.trim() || "미정" : undefined,
       settlement: tab === "groupbuy" ? settlement.trim() || "미정" : undefined,
@@ -59,6 +78,14 @@ export default function CommunityScreen({ onBack, rooms, onAddRoom, onSend, resi
         <div><p>{adminMode ? "관리자 전용 · 대화방 운영" : "같은 층 사용자 · 관리자 동행"}</p><h2>{adminMode ? "커뮤니티 관리" : `${residence.floor}층 커뮤니티`}</h2></div>
         <button className="dm-header-action" onClick={() => setCreating(value => !value)}>+ 방</button>
       </header>
+
+      {adminMode && <section className="community-fridge-picker">
+        <label htmlFor="community-fridge">대화방을 확인할 냉장고</label>
+        <select id="community-fridge" value={activeFridgeId ?? ""} onChange={event => selectFridge(event.target.value)}>
+          {fridges.map(fridge => <option key={fridge.id} value={fridge.id}>{fridge.dorm ? `${fridge.dorm} · ` : ""}{fridge.building} · {fridge.floor} · {fridge.label}</option>)}
+        </select>
+        <small>선택한 냉장고의 대화방만 표시됩니다.</small>
+      </section>}
 
       <div className="dm-tabbar">
         <button className={tab === "care" ? "active" : ""} onClick={() => changeTab("care")}>방치·도난 대화</button>
